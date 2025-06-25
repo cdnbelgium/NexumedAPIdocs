@@ -104,7 +104,15 @@ paths:
                   description: The medical file to upload
       responses:
         '200':
-          description: File received and processing started
+          description: File successfully uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: FROM_EMR route reached for examination XXX
         '400':
           description: Bad request (missing procedure or file)
         '401':
