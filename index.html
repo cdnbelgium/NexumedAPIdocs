@@ -11,7 +11,9 @@
     <div id="redoc-container"></div>
     <script>
       window.addEventListener('DOMContentLoaded', function () {
-        Redoc.init('/swagger.yaml', {}, document.getElementById('redoc-container'));
+        Redoc.init('/swagger.yaml', {
+          hideDownloadButton: true
+        }, document.getElementById('redoc-container'));
       });
     </script>
   </body>
