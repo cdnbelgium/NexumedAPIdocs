@@ -8,6 +8,11 @@
   </head>
   <body>
     <h1>Nexumed</h1>
-    <redoc spec-url="/swagger.yaml"></redoc>
+    <div id="redoc-container"></div>
+    <script>
+      window.addEventListener('DOMContentLoaded', function () {
+        Redoc.init('/swagger.yaml', {}, document.getElementById('redoc-container'));
+      });
+    </script>
   </body>
 </html>
