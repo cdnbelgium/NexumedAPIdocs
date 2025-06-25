@@ -1,0 +1,113 @@
+openapi: 3.0.0
+info:
+  title: Nexumed API - Work Order Upload
+  version: 1.0.0
+  description: |
+    This API allows CareConnect to send patient work order files to Nexumed for secure processing and device-specific routing.
+
+    **Authentication**: Include your assigned `x-api-key` in the request header.  
+    **Security**: All requests must be sent over HTTPS.
+
+    ---
+    **Endpoints Included**:
+    - `POST /api/FROM_EMR`: Generic file upload (basic EMR integration)
+    - `POST /api/receive-file`: Advanced file upload with device routing via `procedure` query param
+
+servers:
+  - url: https://api.nexumed.eu
+    description: Production server
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /api/FROM_EMR:
+    post:
+      summary: Upload work order file from EMR
+      description: |
+        Sends a work order file (XML) from Care Connect to Nexumed for processing.
+        Requires an `x-api-key` to authenticate the doctor/practice.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The medical file to upload (e.g., XML, HL7, GDT)
+      responses:
+        '200':
+          description: File successfully uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: FROM_EMR route reached
+        '400':
+          description: Missing or invalid file
+        '401':
+          description: Invalid or missing API key
+        '500':
+          description: Internal server error
+
+  /api/receive-file:
+    post:
+      summary: Upload file for a specific procedure
+      description: |
+        Uploads a medical work order file and routes it to the appropriate device.
+        Requires a valid `x-api-key` and a `procedure` query parameter.
+
+        **Supported formats**: XML, HL7, GDT, FHIR JSON  
+        **Supported procedures**:
+        - ECG
+        - BP
+        - Spiro
+        - SPO2
+        - TEMP
+        - RR
+        - HR
+      parameters:
+        - name: procedure
+          in: query
+          required: true
+          description: Type of medical procedure to route the file to
+          schema:
+            type: string
+            enum: [ECG, BP, Spiro, SPO2, TEMP, RR, HR]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The medical file to upload
+      responses:
+        '200':
+          description: File received and processing started
+        '400':
+          description: Bad request (missing procedure or file)
+        '401':
+          description: Unauthorized (missing or invalid API key)
+        '500':
+          description: Internal server error
