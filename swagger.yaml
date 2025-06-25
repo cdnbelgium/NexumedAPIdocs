@@ -3,14 +3,14 @@ info:
   title: Nexumed API - Work Order Upload
   version: 1.0.0
   description: |
-    This API allows CareConnect to send patient work order files to Nexumed for secure processing and device-specific routing.
+    This API allows EMRs to send patient work order files to Nexumed for secure processing and device-specific routing.
 
     **Authentication**: Include your assigned `x-api-key` in the request header.  
     **Security**: All requests must be sent over HTTPS.
 
     ---
     **Endpoints Included**:
-    - `POST /api/FROM_EMR`: Generic file upload (basic EMR integration)
+    - `POST /api/FROM_EMR`: Generic file upload (basic EMR integration), with procedure in the body of the file being sent
     - `POST /api/receive-file`: Advanced file upload with device routing via `procedure` query param
 
 servers:
@@ -32,7 +32,7 @@ paths:
     post:
       summary: Upload work order file from EMR
       description: |
-        Sends a work order file (XML) from Care Connect to Nexumed for processing.
+        Sends a work order file (XML) from the EMR to Nexumed for processing.
         Requires an `x-api-key` to authenticate the doctor/practice.
       requestBody:
         required: true
