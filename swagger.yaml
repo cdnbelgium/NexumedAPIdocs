@@ -72,7 +72,7 @@ paths:
         Uploads a medical work order file and routes it to the appropriate device.
         Requires a valid `x-api-key` and a `procedure` query parameter.
 
-        **Supported formats**: XML, HL7, GDT, FHIR JSON  
+        **Supported formats**: XML
         **Supported procedures**:
         - ECG
         - BP
