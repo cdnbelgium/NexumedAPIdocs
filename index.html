@@ -4,17 +4,63 @@
     <meta charset="utf-8" />
     <title>Nexumed API Docs</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/png" href="/nexumed-logo.png" />
     <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
+    <style>
+      body {
+        font-family: 'Segoe UI', sans-serif;
+        margin: 0;
+        padding: 0;
+      }
+      header {
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        background: #006e8a; /* Nexumed blue */
+        color: white;
+      }
+      header img {
+        height: 40px;
+        margin-right: 1rem;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 1.5rem;
+      }
+    </style>
   </head>
   <body>
-    <h1>Nexumed</h1>
+    <header>
+      <img src="/nexumed.png" alt="Nexumed logo" />
+      <h1>Nexumed API Docs</h1>
+    </header>
     <div id="redoc-container"></div>
     <script>
       window.addEventListener('DOMContentLoaded', function () {
-        Redoc.init('/swagger.yaml', {
-          hideDownloadButton: true
-        }, document.getElementById('redoc-container'));
+        Redoc.init('/swagger.yaml',
+          {
+            hideDownloadButton: true,
+            theme: {
+              colors: {
+                primary: {
+                  main: '#006e8a'  // Nexumed blue
+                },
+                success: {
+                  main: '#36b37e'
+                }
+              },
+              typography: {
+                fontFamily: 'Segoe UI, sans-serif',
+                headings: {
+                  fontFamily: 'Segoe UI, sans-serif'
+                }
+              }
+            }
+          },
+          document.getElementById('redoc-container')
+        );
       });
     </script>
   </body>
 </html>
+
