@@ -5,83 +5,90 @@ info:
   description: |
     This API allows EMRs to send patient work order files to Nexumed for secure processing and device-specific routing.
 
-    **Authentication**: Include your assigned `x-api-key` in the request header.  
     **Security**: All requests must be sent over HTTPS.
 
     ---
-    **Endpoints Included**:
-    - `POST /api/FROM_EMR`: Generic file upload (basic EMR integration), with procedure in the body of the file being sent
-    - `POST /api/receive-file`: Advanced file upload with device routing via `procedure` query param
+    **Endpoints Overview**:
+    - `POST /api/work-order-emr`: Basic file upload where the procedure type is **determined automatically** from the file content.
+    - `POST /api/receive-file`: Advanced file upload where the procedure type is **explicitly provided** via a query parameter.
 
 servers:
   - url: https://api.nexumed.eu
     description: Production server
 
-components:
-  securitySchemes:
-    ApiKeyAuth:
-      type: apiKey
-      in: header
-      name: x-api-key
-
-security:
-  - ApiKeyAuth: []
-
 paths:
-  /api/FROM_EMR:
-    post:
-      summary: Upload work order file from EMR
-      description: |
-        Sends a work order file (XML) from the EMR to Nexumed for processing.
-        Requires an `x-api-key` to authenticate the doctor/practice.
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required:
-                - file
-              properties:
-                file:
-                  type: string
-                  format: binary
-                  description: The medical file to upload (e.g., XML, HL7, GDT)
-      responses:
-        '200':
-          description: File successfully uploaded
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: FROM_EMR route reached
-        '400':
-          description: Missing or invalid file
-        '401':
-          description: Invalid or missing API key
-        '500':
-          description: Internal server error
+
+  # /api/work-order-emr:
+  #   post:
+  #     summary: Upload work order file from EMR (procedure detected automatically)
+  #     description: |
+  #       This endpoint allows an EMR to send a patient work order file (XML, HL7, or GDT) to Nexumed for processing.
+
+  #       **How it works:**
+  #       - The uploaded file will be analyzed by Nexumed to automatically detect the procedure type (e.g., ECG, BP, etc.).
+  #       - No need to specify the procedure manually.
+  #       - Requires the `drsID` query parameter to identify the sending doctor or practice.
+
+  #       **When to use this:**  
+  #       Use this endpoint if your system cannot determine the procedure type in advance or prefers to leave routing decisions to Nexumed.
+
+  #     parameters:
+  #       - name: drsID
+  #         in: query
+  #         required: true
+  #         description: Unique identifier for the doctor or practice sending the file
+  #         schema:
+  #           type: string
+  #     requestBody:
+  #       required: true
+  #       content:
+  #         multipart/form-data:
+  #           schema:
+  #             type: object
+  #             required:
+  #               - file
+  #             properties:
+  #               file:
+  #                 type: string
+  #                 format: binary
+  #                 description: The medical file to upload (e.g., XML, HL7, GDT)
+  #     responses:
+  #       '200':
+  #         description: File successfully uploaded
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: object
+  #               properties:
+  #                 message:
+  #                   type: string
+  #                   example: FROM_EMR route reached
+  #       '400':
+  #         description: Missing or invalid file or drsID
+  #       '500':
+  #         description: Internal server error
 
   /api/receive-file:
     post:
-      summary: Upload file for a specific procedure
+      summary: Upload work order file with explicit procedure routing
       description: |
-        Uploads a medical work order file and routes it to the appropriate device.
-        Requires a valid `x-api-key` and a `procedure` query parameter.
+        This endpoint allows an EMR to send a patient work order file (XML) to Nexumed **along with the intended procedure type** for direct routing to the appropriate device or service.
 
-        **Supported formats**: XML
-        **Supported procedures**:
-        - ECG
-        - BP
-        - Spiro
-        - SPO2
-        - TEMP
-        - RR
-        - HR
+        **How it works:**
+        - The `procedure` query parameter explicitly tells Nexumed what type of procedure this file represents (e.g., ECG, BP, Spiro, etc.).
+        - This allows Nexumed to route the file immediately without analyzing its content.
+        - Requires both the `drsID` and `procedure` query parameters.
+
+        **When to use this:**  
+        Use this endpoint if your system knows the procedure type in advance and you want faster, more direct routing.
+
       parameters:
+        - name: drsID
+          in: query
+          required: true
+          description: Unique identifier for the doctor or practice sending the file
+          schema:
+            type: string
         - name: procedure
           in: query
           required: true
@@ -112,10 +119,8 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: FROM_EMR route reached for examination XXX
+                    example: File successfully saved to /var/nexumed-storage/DrsID/Procedure/filename.xml
         '400':
-          description: Bad request (missing procedure or file)
-        '401':
-          description: Unauthorized (missing or invalid API key)
+          description: Bad request (missing procedure, drsID, or file)
         '500':
           description: Internal server error
