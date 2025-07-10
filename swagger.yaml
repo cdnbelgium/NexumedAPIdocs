@@ -9,8 +9,9 @@ info:
 
     ---
     **Endpoints Overview**:
-    - `POST /api/receive-file`: Advanced file upload where the doctor's ID number (**drsID**) and procedure type are explicitly provided via query parameters.
     - `POST /api/receive-file-key`: Advanced file upload where the user's **API key** is explicitly provided via a query parameter, and the procedure type is automatically determined from the uploaded file.
+    - `POST /api/receive-file`: Advanced file upload where the doctor's ID number (**drsID**) and procedure type are explicitly provided via query parameters.
+
 
 servers:
   - url: https://api.nexumed.eu
@@ -66,6 +67,61 @@ paths:
   #         description: Missing or invalid file or drsID
   #       '500':
   #         description: Internal server error
+
+  /api/receive-file-key:
+    post:
+      summary: Upload work order file using API key (procedure detected automatically)
+      description: |
+        This endpoint allows an EMR to send a patient work order file (XML) to Nexumed for processing.
+
+        **How it works:**
+        - The client must pass the `apiKey` as a query parameter.
+        - The uploaded XML file will be analyzed by Nexumed to automatically detect the procedure type (ECG, BP, Spiro, etc.).
+        - The file is securely stored and routed to the correct device or service.
+
+        **When to use this:**
+        Use this endpoint if your system already has an assigned **API key** and you want Nexumed to automatically determine the correct procedure type based on the file's contents.
+
+      parameters:
+        - name: apiKey
+          in: query
+          required: true
+          description: Unique API key provided by Nexumed for authenticating the sender
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The medical file to upload (XML)
+      responses:
+        '200':
+          description: File successfully uploaded and routed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: File successfully saved to /var/nexumed-storage/{DrsID}/{Procedure}/{Filename}.xml
+                  procedure:
+                    type: string
+                    example: ECG
+        '400':
+          description: Bad request (missing apiKey, invalid file, etc.)
+        '401':
+          description: Unauthorized (invalid or missing API key)
+        '500':
+          description: Internal server error
 
   /api/receive-file:
     post:
