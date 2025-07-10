@@ -119,7 +119,7 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: File successfully saved to /var/nexumed-storage/DrsID/Procedure/filename.xml
+                    example: File successfully uploaded
         '400':
           description: Bad request (missing procedure, drsID, or file)
         '500':
@@ -169,7 +169,7 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: File successfully saved to /var/nexumed-storage/{DrsID}/{Procedure}/{Filename}.xml
+                    example: File successfully uploaded
                   procedure:
                     type: string
                     example: ECG
