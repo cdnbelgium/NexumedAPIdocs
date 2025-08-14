@@ -95,7 +95,7 @@ paths:
           description: Type of medical procedure to route the file to
           schema:
             type: string
-            enum: [ECG, BP, Spiro, SPO2, TEMP, RR, HR]
+            enum: [ECG, BP, Spiro, SPO2, TEMP]
       requestBody:
         required: true
         content:
