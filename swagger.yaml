@@ -16,21 +16,12 @@ servers:
   - url: https://api.nexumed.eu
     description: Production server
 paths:
-
   /api/receive-file:
     post:
       summary: Upload work order file with explicit procedure routing
       description: |
-        This endpoint allows an EMR to send a patient work order file to Nexumed **along with the intended procedure type** for direct routing to the appropriate device or service.  Those file formats accepted are GDT/XML/HL7/FHIR and DICOM.
-
-        **How it works:**
-        - The `procedure` query parameter explicitly tells Nexumed what type of procedure this file represents (e.g., ECG, BP, Spiro, etc.).
-        - This allows Nexumed to route the file immediately without analyzing its content.
+        This endpoint allows an EMR to send a patient work order file to Nexumed **along with the intended procedure type** for direct routing to the appropriate device or service. Those file formats accepted are GDT/XML/HL7/FHIR and DICOM.
         - Requires both the `drsID` and `procedure` query parameters.
-
-        **When to use this:**  
-        Use this endpoint if your system knows the procedure type in advance and you want faster, more direct routing.
-
       parameters:
         - name: drsID
           in: query
@@ -51,8 +42,7 @@ paths:
           multipart/form-data:
             schema:
               type: object
-              required:
-                - file
+              required: [file]
               properties:
                 file:
                   type: string
@@ -69,30 +59,20 @@ paths:
                   message:
                     type: string
                     example: File successfully uploaded
-        '400':
-          description: Bad request (missing procedure, drsID, or file)
-        '500':
-          description: Internal server error
+        '400': { description: Bad request (missing procedure, drsID, or file) }
+        '500': { description: Internal server error }
 
   /api/receive-file-key:
     post:
       summary: Upload work order file using API key (procedure detected automatically)
       description: |
-        This endpoint allows an EMR to send a patient work order file to Nexumed for processing.  Those file formats accepted are GDT/XML/HL7/FHIR and DICOM.
-
-        **How it works:**
-        - The client must pass the `apiKey` as a query parameter.
-        - The uploaded files will be analyzed by Nexumed to automatically detect the procedure type (ECG, BP, Spiro, etc.).
-        - The file is securely stored and routed to the correct device or service.
-
-        **When to use this:**
-        Use this endpoint if your system already has an assigned **API key** and you want Nexumed to automatically determine the correct procedure type based on the file's contents.
-
+        Upload a patient work order file; Nexumed detects the procedure (ECG, BP, Spiro, etc.) automatically.
+        Requires an `apiKey` query parameter. Accepted formats: GDT/XML/HL7/FHIR/DICOM.
       parameters:
         - name: apiKey
           in: query
           required: true
-          description: Unique API key provided by Nexumed for authenticating the sender
+          description: API key provided by Nexumed for authenticating the sender
           schema:
             type: string
       requestBody:
@@ -101,13 +81,12 @@ paths:
           multipart/form-data:
             schema:
               type: object
-              required:
-                - file
+              required: [file]
               properties:
                 file:
                   type: string
                   format: binary
-                  description: The medical file to upload, file formats accepted are GDT/XML/HL7/FHIR and DICOM.
+                  description: The medical file to upload
       responses:
         '200':
           description: File successfully uploaded and routed
@@ -122,30 +101,26 @@ paths:
                   procedure:
                     type: string
                     example: ECG
-        '400':
-          description: Bad request (missing apiKey, invalid file, etc.)
-        '401':
-          description: Unauthorized (invalid or missing API key)
-        '500':
-          description: Internal server error
+        '400': { description: Bad request (missing apiKey, invalid file, etc.) }
+        '401': { description: Unauthorized (invalid or missing API key) }
+        '500': { description: Internal server error }
 
- /emr/eid/{drsId}/patient-data-out:
+  /emr/eid/{drsId}/patient-data-out:
     get:
-      summary: eID reader => GEt request from EMR for cards data
+      summary: eID reader — GET patient data XML
       description: |
         Returns the most recently staged eID patient XML for the given **drsId**.
-        Supports conditional requests via **If-None-Match** if no file, or the file has been deleted due to being timed out.
+        Supports conditional requests via **If-None-Match** (ETag). Returns **404** if no file is staged or it expired.
       parameters:
         - name: drsId
           in: path
           required: true
           description: Unique doctor/practice identifier used when staging the work order
-          schema:
-            type: string
+          schema: { type: string }
         - name: If-None-Match
           in: header
           required: false
-          description: ETag returned from a previous 200 response; if it matches, a **304 Not Modified** is returned
+          description: ETag from a previous 200 response; if it matches, a **304 Not Modified** is returned
           schema:
             type: string
             example: "\"6f1d7a1b9e2d3c4f...\""
@@ -157,7 +132,7 @@ paths:
               description: Strong ETag for the XML body (quoted)
               schema: { type: string, example: "\"6f1d7a1b9e2d3c4f...\"" }
             Last-Modified:
-              description: When the payload was staged (HTTP-date, RFC 7231)
+              description: When the payload was staged (HTTP-date)
               schema: { type: string, example: "Tue, 04 Nov 2025 12:34:56 GMT" }
             X-Checksum-SHA256:
               description: SHA-256 checksum of the XML body (hex)
@@ -166,11 +141,11 @@ paths:
               description: No-store to prevent caching at rest
               schema: { type: string, example: "no-store" }
             Content-Disposition:
-              description: Suggested filename for download
+              description: Suggested filename
               schema: { type: string, example: "attachment; filename=\"patient-data-out.xml\"" }
             Content-Length:
               description: Length of the XML body in bytes
-              schema: { type: integer, example: 12345 }
+              schema: { type: string, example: "12345" }
           content:
             application/xml:
               schema:
@@ -180,19 +155,15 @@ paths:
                   <eid version="4.5">
                     <identity nationalnumber="70072259768" dateofbirth="19700722" gender="male"/>
                   </eid>
-        '304':
-          description: Not Modified (content unchanged since the provided ETag)
+        '304': { description: Not Modified (content unchanged since the provided ETag) }
         '404':
           description: No staged XML found for this drsId, or it has expired
           content:
             text/plain:
-              schema:
-                type: string
-                example: Not found or expired
-        '500':
-          description: Internal server error
-      tags:
-        - EMR Pull
+              schema: { type: string, example: Not found or expired }
+        '500': { description: Internal server error }
+      tags: [EMR Pull]
+
 
   # - `POST /api/work-order-emr`: Basic file upload where the procedure type is **determined automatically** from the file content.
   # /api/work-order-emr:
