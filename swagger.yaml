@@ -112,7 +112,7 @@ paths:
       summary: eID reader — GET patient data XML
       description: |
         Returns the most recently staged eID patient XML for the given **drsId**.
-        Supports conditional requests via **If-None-Match** (ETag). Returns **404** if no file is staged or it expired.
+        Supports conditional requests via **If-None-Match**'' Returns **404** if no file is staged or it expired (5 min from time it has been pushed in the Nexumed App).
       parameters:
         - name: drsId
           in: path
