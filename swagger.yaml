@@ -61,6 +61,7 @@ paths:
                     example: File successfully uploaded
         '400': { description: Bad request (missing procedure, drsID, or file) }
         '500': { description: Internal server error }
+        tags: [EMR SEND PATIENT DATA]
 
   /api/receive-file-key:
     post:
@@ -104,6 +105,7 @@ paths:
         '400': { description: Bad request (missing apiKey, invalid file, etc.) }
         '401': { description: Unauthorized (invalid or missing API key) }
         '500': { description: Internal server error }
+        tags: [EMR SEND PATIENT DATA]
 
   /emr/eid/{drsId}/patient-data-out:
     get:
