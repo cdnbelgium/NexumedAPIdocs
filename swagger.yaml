@@ -16,57 +16,6 @@ servers:
   - url: https://api.nexumed.eu
     description: Production server
 paths:
-  # - `POST /api/work-order-emr`: Basic file upload where the procedure type is **determined automatically** from the file content.
-  # /api/work-order-emr:
-  #   post:
-  #     summary: Upload work order file from EMR (procedure detected automatically)
-  #     description: |
-  #       This endpoint allows an EMR to send a patient work order file (XML, HL7, or GDT) to Nexumed for processing.
-
-  #       **How it works:**
-  #       - The uploaded file will be analyzed by Nexumed to automatically detect the procedure type (e.g., ECG, BP, etc.).
-  #       - No need to specify the procedure manually.
-  #       - Requires the `drsID` query parameter to identify the sending doctor or practice.
-
-  #       **When to use this:**  
-  #       Use this endpoint if your system cannot determine the procedure type in advance or prefers to leave routing decisions to Nexumed.
-
-  #     parameters:
-  #       - name: drsID
-  #         in: query
-  #         required: true
-  #         description: Unique identifier for the doctor or practice sending the file
-  #         schema:
-  #           type: string
-  #     requestBody:
-  #       required: true
-  #       content:
-  #         multipart/form-data:
-  #           schema:
-  #             type: object
-  #             required:
-  #               - file
-  #             properties:
-  #               file:
-  #                 type: string
-  #                 format: binary
-  #                 description: The medical file to upload (e.g., XML, HL7, GDT)
-  #     responses:
-  #       '200':
-  #         description: File successfully uploaded
-  #         content:
-  #           application/json:
-  #             schema:
-  #               type: object
-  #               properties:
-  #                 message:
-  #                   type: string
-  #                   example: FROM_EMR route reached
-  #       '400':
-  #         description: Missing or invalid file or drsID
-  #       '500':
-  #         description: Internal server error
-  
 
   /api/receive-file:
     post:
@@ -180,3 +129,119 @@ paths:
         '500':
           description: Internal server error
 
+ /emr/eid/{drsId}/patient-data-out:
+    get:
+      summary: eID reader => GEt request from EMR for cards data
+      description: |
+        Returns the most recently staged eID patient XML for the given **drsId**.
+        Supports conditional requests via **If-None-Match** if no file, or the file has been deleted due to being timed out.
+      parameters:
+        - name: drsId
+          in: path
+          required: true
+          description: Unique doctor/practice identifier used when staging the work order
+          schema:
+            type: string
+        - name: If-None-Match
+          in: header
+          required: false
+          description: ETag returned from a previous 200 response; if it matches, a **304 Not Modified** is returned
+          schema:
+            type: string
+            example: "\"6f1d7a1b9e2d3c4f...\""
+      responses:
+        '200':
+          description: XML found and returned
+          headers:
+            ETag:
+              description: Strong ETag for the XML body (quoted)
+              schema: { type: string, example: "\"6f1d7a1b9e2d3c4f...\"" }
+            Last-Modified:
+              description: When the payload was staged (HTTP-date, RFC 7231)
+              schema: { type: string, example: "Tue, 04 Nov 2025 12:34:56 GMT" }
+            X-Checksum-SHA256:
+              description: SHA-256 checksum of the XML body (hex)
+              schema: { type: string, example: "6f1d7a1b9e2d3c4f9a0b..." }
+            Cache-Control:
+              description: No-store to prevent caching at rest
+              schema: { type: string, example: "no-store" }
+            Content-Disposition:
+              description: Suggested filename for download
+              schema: { type: string, example: "attachment; filename=\"patient-data-out.xml\"" }
+            Content-Length:
+              description: Length of the XML body in bytes
+              schema: { type: integer, example: 12345 }
+          content:
+            application/xml:
+              schema:
+                type: string
+                example: |
+                  <?xml version="1.0" encoding="UTF-8"?>
+                  <eid version="4.5">
+                    <identity nationalnumber="70072259768" dateofbirth="19700722" gender="male"/>
+                  </eid>
+        '304':
+          description: Not Modified (content unchanged since the provided ETag)
+        '404':
+          description: No staged XML found for this drsId, or it has expired
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Not found or expired
+        '500':
+          description: Internal server error
+      tags:
+        - EMR Pull
+
+  # - `POST /api/work-order-emr`: Basic file upload where the procedure type is **determined automatically** from the file content.
+  # /api/work-order-emr:
+  #   post:
+  #     summary: Upload work order file from EMR (procedure detected automatically)
+  #     description: |
+  #       This endpoint allows an EMR to send a patient work order file (XML, HL7, or GDT) to Nexumed for processing.
+
+  #       **How it works:**
+  #       - The uploaded file will be analyzed by Nexumed to automatically detect the procedure type (e.g., ECG, BP, etc.).
+  #       - No need to specify the procedure manually.
+  #       - Requires the `drsID` query parameter to identify the sending doctor or practice.
+
+  #       **When to use this:**  
+  #       Use this endpoint if your system cannot determine the procedure type in advance or prefers to leave routing decisions to Nexumed.
+
+  #     parameters:
+  #       - name: drsID
+  #         in: query
+  #         required: true
+  #         description: Unique identifier for the doctor or practice sending the file
+  #         schema:
+  #           type: string
+  #     requestBody:
+  #       required: true
+  #       content:
+  #         multipart/form-data:
+  #           schema:
+  #             type: object
+  #             required:
+  #               - file
+  #             properties:
+  #               file:
+  #                 type: string
+  #                 format: binary
+  #                 description: The medical file to upload (e.g., XML, HL7, GDT)
+  #     responses:
+  #       '200':
+  #         description: File successfully uploaded
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: object
+  #               properties:
+  #                 message:
+  #                   type: string
+  #                   example: FROM_EMR route reached
+  #       '400':
+  #         description: Missing or invalid file or drsID
+  #       '500':
+  #         description: Internal server error
+  
