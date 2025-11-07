@@ -16,51 +16,51 @@ servers:
   - url: https://api.nexumed.eu
     description: Production server
 paths:
-  /api/receive-file:
-    post:
-      summary: Upload work order file with explicit procedure routing
-      description: |
-        This endpoint allows an EMR to send a patient work order file to Nexumed **along with the intended procedure type** for direct routing to the appropriate device or service. Those file formats accepted are GDT/XML/HL7/FHIR and DICOM.
-        - Requires both the `drsID` and `procedure` query parameters.
-      parameters:
-        - name: drsID
-          in: query
-          required: true
-          description: Unique identifier for the doctor or practice sending the file
-          schema:
-            type: string
-        - name: procedure
-          in: query
-          required: true
-          description: Type of medical procedure to route the file to
-          schema:
-            type: string
-            enum: [ECG, BP, Spiro, SPO2, TEMP]
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required: [file]
-              properties:
-                file:
-                  type: string
-                  format: binary
-                  description: The medical file to upload
-      responses:
-        '200':
-          description: File successfully uploaded
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: File successfully uploaded
-        '400': { description: Bad request (missing procedure, drsID, or file) }
-        '500': { description: Internal server error }
+  # /api/receive-file:
+  #   post:
+  #     summary: Upload work order file with explicit procedure routing
+  #     description: |
+  #       This endpoint allows an EMR to send a patient work order file to Nexumed **along with the intended procedure type** for direct routing to the appropriate device or service. Those file formats accepted are GDT/XML/HL7/FHIR and DICOM.
+  #       - Requires both the `drsID` and `procedure` query parameters.
+  #     parameters:
+  #       - name: drsID
+  #         in: query
+  #         required: true
+  #         description: Unique identifier for the doctor or practice sending the file
+  #         schema:
+  #           type: string
+  #       - name: procedure
+  #         in: query
+  #         required: true
+  #         description: Type of medical procedure to route the file to
+  #         schema:
+  #           type: string
+  #           enum: [ECG, BP, Spiro, SPO2, TEMP]
+  #     requestBody:
+  #       required: true
+  #       content:
+  #         multipart/form-data:
+  #           schema:
+  #             type: object
+  #             required: [file]
+  #             properties:
+  #               file:
+  #                 type: string
+  #                 format: binary
+  #                 description: The medical file to upload
+  #     responses:
+  #       '200':
+  #         description: File successfully uploaded
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: object
+  #               properties:
+  #                 message:
+  #                   type: string
+  #                   example: File successfully uploaded
+  #       '400': { description: Bad request (missing procedure, drsID, or file) }
+  #       '500': { description: Internal server error }
      
 
   /api/receive-file-key:
