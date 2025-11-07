@@ -9,8 +9,9 @@ info:
 
     ---
     **Endpoints Overview**:
-    - `POST /api/receive-file`: Advanced file upload where the doctor's ID number (**drsID**) and procedure type are explicitly provided via query parameters.
     - `POST /api/receive-file-key`: Advanced file upload where the user's **API key** is explicitly provided via a query parameter, and the procedure type is automatically determined from the uploaded file.
+    - `GET /emr/eid/{drsId}/patient-data-out:`: Advanced file get, where the doctor's ID number (**drsID**) is explicitly provided via query parameters.
+
 
 servers:
   - url: https://api.nexumed.eu
