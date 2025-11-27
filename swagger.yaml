@@ -106,6 +106,57 @@ paths:
         '400': { description: Bad request (missing apiKey, invalid file, etc.) }
         '401': { description: Unauthorized (invalid or missing API key) }
         '500': { description: Internal server error }
+
+
+/api/emr/procedures:
+  get:
+    summary: Get configured procedures for doctor with API key attached
+    description: |
+      Returns the list of procedures (e.g. ECG, BP, Spiro, Otoscope).
+
+      The API key is used to look up the doctor and their selected devices inside Nexumed.
+    parameters:
+      - name: apiKey
+        in: query
+        required: true
+        description: API key provided by Nexumed for authenticating the EMR / doctor
+        schema:
+          type: string
+    responses:
+      '200':
+        description: Successfully resolved procedures for this doctor
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok:
+                  type: boolean
+                  example: true
+                procedures:
+                  type: array
+                  description: Unique list of procedures enabled for this doctor
+                  items:
+                    type: string
+                    enum:
+                      - ECG
+                      - BP
+                      - Spiro
+                      - SPO2
+                      - TEMP
+                      - ABPM
+                      - Vital Signs
+                      - Otoscope
+                      - Dermatoscope
+                      - Ultrasound
+                  example:
+                    - Otoscope
+                    - Spiro
+                    - BP
+                    - ECG
+      '400': { description: Bad request (missing apiKey) }
+      '401': { description: Unauthorized (invalid or unknown apiKey) }
+      '500': { description: Internal server error }
        
 
   /emr/eid/{drsId}/patient-data-out:
