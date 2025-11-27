@@ -11,11 +11,12 @@ info:
     **Endpoints Overview**:
     - `POST /api/receive-file-key`: Advanced file upload where the user's **API key** is explicitly provided via a query parameter, and the procedure type is automatically determined from the uploaded file.
     - `GET /emr/eid/{drsId}/patient-data-out:`: Advanced file get, where the doctor's ID number (**drsID**) is explicitly provided via query parameters.
-
+    - `GET /api/emr/procedures`: Returns the list of configured procedures (ECG, BP, Spiro, etc.) for the doctor associated with the provided API key.
 
 servers:
   - url: https://api.nexumed.eu
     description: Production server
+
 paths:
   # /api/receive-file:
   #   post:
@@ -62,7 +63,6 @@ paths:
   #                   example: File successfully uploaded
   #       '400': { description: Bad request (missing procedure, drsID, or file) }
   #       '500': { description: Internal server error }
-     
 
   /api/receive-file-key:
     post:
@@ -107,57 +107,57 @@ paths:
         '401': { description: Unauthorized (invalid or missing API key) }
         '500': { description: Internal server error }
 
+  /api/emr/procedures:
+    get:
+      summary: Get configured procedures for doctor (via API key)
+      description: |
+        Returns the list of unique procedures (e.g. ECG, BP, Spiro, Otoscope) configured
+        for the doctor associated with the provided API key.
 
-/api/emr/procedures:
-  get:
-    summary: Get configured procedures for doctor with API key attached
-    description: |
-      Returns the list of procedures (e.g. ECG, BP, Spiro, Otoscope).
-
-      The API key is used to look up the doctor and their selected devices inside Nexumed.
-    parameters:
-      - name: apiKey
-        in: query
-        required: true
-        description: API key provided by Nexumed for authenticating the EMR / doctor
-        schema:
-          type: string
-    responses:
-      '200':
-        description: Successfully resolved procedures for this doctor
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                ok:
-                  type: boolean
-                  example: true
-                procedures:
-                  type: array
-                  description: Unique list of procedures enabled for this doctor
-                  items:
-                    type: string
-                    enum:
-                      - ECG
-                      - BP
-                      - Spiro
-                      - SPO2
-                      - TEMP
-                      - ABPM
-                      - Vital Signs
+        The API key is used to look up the doctor and their selected devices inside Nexumed;
+        only the **procedure names** are returned in the response.
+      parameters:
+        - name: apiKey
+          in: query
+          required: true
+          description: API key provided by Nexumed for authenticating the EMR / doctor
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successfully resolved procedures for this doctor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  procedures:
+                    type: array
+                    description: Unique list of procedures enabled for this doctor
+                    items:
+                      type: string
+                      enum:
+                        - ECG
+                        - BP
+                        - Spiro
+                        - SPO2
+                        - TEMP
+                        - ABPM
+                        - Vital Signs
+                        - Otoscope
+                        - Dermatoscope
+                        - Ultrasound
+                    example:
                       - Otoscope
-                      - Dermatoscope
-                      - Ultrasound
-                  example:
-                    - Otoscope
-                    - Spiro
-                    - BP
-                    - ECG
-      '400': { description: Bad request (missing apiKey) }
-      '401': { description: Unauthorized (invalid or unknown apiKey) }
-      '500': { description: Internal server error }
-       
+                      - Spiro
+                      - BP
+                      - ECG
+        '400': { description: Bad request (missing apiKey) }
+        '401': { description: Unauthorized (invalid or unknown apiKey) }
+        '500': { description: Internal server error }
 
   /emr/eid/{drsId}/patient-data-out:
     get:
@@ -216,56 +216,3 @@ paths:
             text/plain:
               schema: { type: string, example: Not found or expired }
         '500': { description: Internal server error }
-      
-
-  # - `POST /api/work-order-emr`: Basic file upload where the procedure type is **determined automatically** from the file content.
-  # /api/work-order-emr:
-  #   post:
-  #     summary: Upload work order file from EMR (procedure detected automatically)
-  #     description: |
-  #       This endpoint allows an EMR to send a patient work order file (XML, HL7, or GDT) to Nexumed for processing.
-
-  #       **How it works:**
-  #       - The uploaded file will be analyzed by Nexumed to automatically detect the procedure type (e.g., ECG, BP, etc.).
-  #       - No need to specify the procedure manually.
-  #       - Requires the `drsID` query parameter to identify the sending doctor or practice.
-
-  #       **When to use this:**  
-  #       Use this endpoint if your system cannot determine the procedure type in advance or prefers to leave routing decisions to Nexumed.
-
-  #     parameters:
-  #       - name: drsID
-  #         in: query
-  #         required: true
-  #         description: Unique identifier for the doctor or practice sending the file
-  #         schema:
-  #           type: string
-  #     requestBody:
-  #       required: true
-  #       content:
-  #         multipart/form-data:
-  #           schema:
-  #             type: object
-  #             required:
-  #               - file
-  #             properties:
-  #               file:
-  #                 type: string
-  #                 format: binary
-  #                 description: The medical file to upload (e.g., XML, HL7, GDT)
-  #     responses:
-  #       '200':
-  #         description: File successfully uploaded
-  #         content:
-  #           application/json:
-  #             schema:
-  #               type: object
-  #               properties:
-  #                 message:
-  #                   type: string
-  #                   example: FROM_EMR route reached
-  #       '400':
-  #         description: Missing or invalid file or drsID
-  #       '500':
-  #         description: Internal server error
-  
