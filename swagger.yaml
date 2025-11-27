@@ -10,8 +10,9 @@ info:
     ---
     **Endpoints Overview**:
     - `POST /api/receive-file-key`: Advanced file upload where the user's **API key** is explicitly provided via a query parameter, and the procedure type is automatically determined from the uploaded file.
-    - `GET /emr/eid/{drsId}/patient-data-out:`: Advanced file get, where the doctor's ID number (**drsID**) is explicitly provided via query parameters.
     - `GET /api/emr/procedures`: Returns the list of configured procedures (ECG, BP, Spiro, etc.) for the doctor associated with the provided API key.
+    - `GET /emr/eid/{drsId}/patient-data-out:`: Advanced file get, where the doctor's ID number (**drsID**) is explicitly provided via query parameters.
+    
 
 servers:
   - url: https://api.nexumed.eu
@@ -109,13 +110,13 @@ paths:
 
   /api/emr/procedures:
     get:
-      summary: Get configured procedures for doctor (via API key)
+      summary: Get procedures for doctor's devices (via API key)
       description: |
         Returns the list of unique procedures (e.g. ECG, BP, Spiro, Otoscope) configured
         for the doctor associated with the provided API key.
 
         The API key is used to look up the doctor and their selected devices inside Nexumed;
-        only the **procedure names** are returned in the response.
+        The procedure names are returned in the response.
       parameters:
         - name: apiKey
           in: query
