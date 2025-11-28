@@ -69,8 +69,18 @@ paths:
     post:
       summary: Upload work order file using API key (procedure detected automatically)
       description: |
-        Upload a patient work order file; Nexumed detects the procedure (ECG, BP, Spiro, etc.) automatically.
-        Requires an `apiKey` query parameter. Accepted formats: GDT/XML/HL7/FHIR/DICOM.
+        Upload a patient work order file. Nexumed will automatically detect the procedure
+        (ECG, BP, Spiro, etc.) from the file content.
+
+        - Requires an `apiKey` query parameter.
+        - Requires a `file` field in multipart/form-data.
+        - Only allowed if the doctor's subscription is active.
+
+        Supported formats:
+        - GDT
+        - XML
+        - HL7
+        - Other formats are accepted and stored but may be marked as `procedure: "Unknown"`.
       parameters:
         - name: apiKey
           in: query
@@ -84,12 +94,13 @@ paths:
           multipart/form-data:
             schema:
               type: object
-              required: [file]
+              required:
+                - file
               properties:
                 file:
                   type: string
                   format: binary
-                  description: The medical file to upload
+                  description: The medical file to upload.
       responses:
         '200':
           description: File successfully uploaded and routed
@@ -100,13 +111,41 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: File successfully uploaded
+                    example: File has been sent.
+                  drsId:
+                    type: string
+                    example: "98765432112"
+                  emr:
+                    type: string
+                    example: "Medinect"
                   procedure:
                     type: string
-                    example: ECG
-        '400': { description: Bad request (missing apiKey, invalid file, etc.) }
-        '401': { description: Unauthorized (invalid or missing API key) }
-        '500': { description: Internal server error }
+                    example: "ECG"
+        '400':
+          description: Bad request (missing apiKey or missing/invalid file)
+        '401':
+          description: Unauthorized (invalid API key)
+        '403':
+          description: Subscription inactive or not allowed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Subscription inactive. Please renew.
+                  drsId:
+                    type: string
+                    example: "98765432112"
+                  emr:
+                    type: string
+                    example: "Medinect"
+        '404':
+          description: Doctor not found for this API key
+        '500':
+          description: Internal server error
+
 
   /api/emr/procedures:
     get:
