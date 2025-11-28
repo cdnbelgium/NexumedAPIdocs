@@ -69,18 +69,25 @@ paths:
     post:
       summary: Upload work order file using API key (procedure detected automatically)
       description: |
-        Upload a patient work order file. Nexumed will automatically detect the procedure
-        (ECG, BP, Spiro, etc.) from the file content.
+        Upload a patient work order file. Nexumed will automatically determine the procedure
+        using the embedded information inside the file content.
 
-        - Requires an `apiKey` query parameter.
-        - Requires a `file` field in multipart/form-data.
-        - Only allowed if the doctor's subscription is active.
+        Allowed procedure keys used internally by Nexumed:
+        - BP
+        - ECG
+        - Spiro
+        - SPO2
+        - TEMP
+        - RR
+        - HR
+        - Unknown
+        - Otoscope
 
-        Supported formats:
-        - GDT
-        - XML
-        - HL7
-        - Other formats are accepted and stored but may be marked as `procedure: "Unknown"`.
+        The API also enforces that the doctor's subscription is active before any routing occurs.
+
+        Requires:
+        - `apiKey` query parameter
+        - `file` in multipart/form-data
       parameters:
         - name: apiKey
           in: query
@@ -145,6 +152,7 @@ paths:
           description: Doctor not found for this API key
         '500':
           description: Internal server error
+
 
 
   /api/emr/procedures:
