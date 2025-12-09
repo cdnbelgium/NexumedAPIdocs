@@ -155,7 +155,7 @@ paths:
 
 
 
-  /api/emr/procedures:
+  /api/procedures:
     get:
       summary: Get procedures for doctor's devices (via API key)
       description: |
