@@ -66,184 +66,213 @@ paths:
   #       '500': { description: Internal server error }
 
   /api/receive-file-key:
-    post:
-      summary: Upload work order file using API key (procedure detected automatically)
-      description: |
-        Upload a patient work order file. Nexumed will automatically determine the procedure
-        using the embedded information inside the file content.
+  post:
+    summary: Upload work order file using API key (procedure detected automatically)
+    description: |
+      Upload a patient work order file. Nexumed will automatically determine the procedure
+      using the embedded information inside the file content.
 
-        Allowed procedure keys used internally by Nexumed:
-        - BP
-        - ECG
-        - Spiro
-        - SPO2
-        - TEMP
-        - RR
-        - HR
-        - Unknown
-        - Otoscope
+      Allowed procedure keys used internally by Nexumed:
+      - BP
+      - ECG
+      - Spiro
+      - SPO2
+      - TEMP
+      - RR
+      - HR
+      - Unknown
+      - Otoscope
 
-        Behaviour:
+      Behaviour:
 
-        - Validates the API key and doctor subscription.
-        - Detects file format: GDT / XML / HL7 / Unknown.
-        - Detects procedure from file content (e.g. ECG, Spiro, BP, Otoscope).
-        - Looks up the mapped device for that procedure (if any).
+      - Validates the API key and doctor subscription.
+      - Detects file format: GDT / XML / HL7 / Unknown.
+      - Detects procedure from file content (e.g. ECG, Spiro, BP, Otoscope).
+      - Looks up the mapped device for that procedure (if any).
 
-        Response variants (HTTP 200):
-        - **Otoscope**: file is forwarded to `/api/otoscope` (mobile app flow), no `converted`.
-        - **No device**: no matching device found ⇒ `converted: null`.
-        - **MIR Spiro**: HL7 is queued in Redis ⇒ `converted.mode = "mirQueue"`.
-        - **Normal device**: converted file returned ⇒ `converted.mode = "file"`.
+      Response variants (HTTP 200):
+      - **Otoscope**: file is forwarded to `/api/otoscope` (mobile app flow), `forwardedTo` is set, `converted` typically omitted.
+      - **No device**: no matching device found ⇒ `converted: null`.
+      - **MIR Spiro**: HL7 is queued in Redis ⇒ `converted.mode = "mirQueue"`.
+      - **Normal device**: converted file returned ⇒ `converted.mode = "file"`.
 
-        Requires:
-        - `apiKey` query parameter
-        - `file` in multipart/form-data
-      parameters:
-        - name: apiKey
-          in: query
-          required: true
-          description: API key provided by Nexumed for authenticating the sender
-          schema:
-            type: string
-      requestBody:
+      Requires:
+      - `apiKey` query parameter
+      - `file` in multipart/form-data
+    parameters:
+      - name: apiKey
+        in: query
         required: true
+        description: API key provided by Nexumed for authenticating the sender
+        schema:
+          type: string
+    requestBody:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            required:
+              - file
+            properties:
+              file:
+                type: string
+                format: binary
+                description: The medical file to upload.
+    responses:
+      '200':
+        description: File successfully processed
         content:
-          multipart/form-data:
+          application/json:
             schema:
               type: object
-              required:
-                - file
               properties:
-                file:
+                message:
                   type: string
-                  format: binary
-                  description: The medical file to upload.
-      responses:
-        '200':
-          description: File successfully processed
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: Work order parsed (no routing applied yet)
-                  drsId:
-                    type: string
-                    example: "98765432112"
-                  emr:
-                    type: string
-                    example: "Medinect"
-                  procedure:
-                    type: string
-                    description: Detected procedure from file content
-                    example: "Spiro"
-                  format:
-                    type: string
-                    description: Detected incoming file format
-                    enum: [GDT, XML, HL7, Unknown]
-                    example: "XML"
-                  forwardedTo:
-                    type: string
-                    nullable: true
-                    description: |
-                      Present only for the Otoscope cloud flow.
-                      Indicates that the file was forwarded internally.
-                    example: "/api/otoscope"
-                  converted:
-                    description: |
-                      Result of device-specific conversion.
+                  example: Work order parsed (no routing applied yet)
+                drsId:
+                  type: string
+                  example: "98765432112"
+                emr:
+                  type: string
+                  example: "Medinect"
+                procedure:
+                  type: string
+                  description: Detected procedure from file content
+                  example: "ECG"
+                format:
+                  type: string
+                  description: Detected incoming file format
+                  enum: [GDT, XML, HL7, Unknown]
+                  example: "XML"
+                forwardedTo:
+                  type: string
+                  nullable: true
+                  description: |
+                    Present only for the Otoscope cloud flow.
+                    Indicates that the file was forwarded internally.
+                  example: null
+                converted:
+                  description: |
+                    Result of device-specific conversion.
 
-                      - `null`          → no matching device configured.
-                      - `mirQueue` mode → MIR Spiro HL7 queued in Redis.
-                      - `file` mode     → converted file content to be written by Nexumed Desktop.
-                    nullable: true
-                    oneOf:
-                      # no-device case: converted === null (represented by nullable: true above)
-                      - type: "null"
-                        description: No device routing was applied.
-                      # MIR queue case
-                      - type: object
-                        description: MIR Spiro work order queued in Redis
-                        required: [mode, targetFormat, orderId]
-                        properties:
-                          mode:
-                            type: string
-                            enum: ["mirQueue"]
-                            example: "mirQueue"
-                          targetFormat:
-                            type: string
-                            description: Target format for MIR
-                            example: "HL7"
-                          orderId:
-                            type: string
-                            description: Server-generated work order ID
-                            example: "c1f8a7b8-5c29-4dd3-b8c0-7f5f4c2a21cd"
-                      # normal device / file case
-                      - type: object
-                        description: Converted file for a device-based workflow
-                        required:
-                          - mode
-                          - targetFormat
-                          - content
-                        properties:
-                          mode:
-                            type: string
-                            enum: ["file"]
-                            example: "file"
-                          targetFormat:
-                            type: string
-                            description: Format expected by the device
-                            example: "GDT"
-                          content:
-                            type: string
-                            description: Converted file content (GDT / HL7 / XML, etc.)
-                            example: "01380006302\r\n014810000264\r\n..."
-                          pathWorkOrder:
-                            type: string
-                            nullable: true
-                            description: |
-                              Target workorder folder path for the device, if configured.
-                              Nexumed Desktop typically writes `fileName` into this folder.
-                            example: "C:\\Nexumed\\Spirometry"
-                          pathProcedure:
-                            type: string
-                            nullable: true
-                            description: Optional device procedure folder path, if applicable.
-                            example: "C:\\Nexumed\\Spirometry\\Results"
-                          fileName:
-                            type: string
-                            nullable: true
-                            description: |
-                              Suggested filename for the converted file.
-                              Defaults to `DEV1EMR1.gdt` if omitted.
-                            example: "DEV1EMR1.gdt"
-        '400':
-          description: Bad request (missing apiKey or missing/invalid file)
-        '401':
-          description: Unauthorized (invalid API key)
-        '403':
-          description: Subscription inactive or not allowed
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: Subscription inactive. Please renew.
-                  drsId:
-                    type: string
-                    example: "98765432112"
-                  emr:
-                    type: string
-                    example: "Medinect"
-        '404':
-          description: Doctor not found for this API key
-        '500':
-          description: Internal server error
+                    - `null`          → no matching device configured.
+                    - `mirQueue` mode → MIR Spiro HL7 queued in Redis.
+                    - `file` mode     → converted file content to be written by Nexumed Desktop.
+                  nullable: true
+                  oneOf:
+                    # no-device case: converted === null (represented by nullable: true above)
+                    - type: "null"
+                      description: No device routing was applied.
+                    # MIR queue case
+                    - type: object
+                      description: MIR Spiro work order queued in Redis
+                      required: [mode, targetFormat, orderId]
+                      properties:
+                        mode:
+                          type: string
+                          enum: ["mirQueue"]
+                          example: "mirQueue"
+                        targetFormat:
+                          type: string
+                          description: Target format for MIR
+                          example: "HL7"
+                        orderId:
+                          type: string
+                          description: Server-generated work order ID
+                          example: "c1f8a7b8-5c29-4dd3-b8c0-7f5f4c2a21cd"
+                    # normal device / file case
+                    - type: object
+                      description: Converted file for a device-based workflow
+                      required:
+                        - mode
+                        - targetFormat
+                        - content
+                      properties:
+                        mode:
+                          type: string
+                          enum: ["file"]
+                          example: "file"
+                        targetFormat:
+                          type: string
+                          description: Format expected by the device
+                          example: "GDT"
+                        content:
+                          type: string
+                          description: Converted file content (GDT / HL7 / XML, etc.)
+                          example: "01380006302\r\n014810000264\r\n..."
+                        pathWorkOrder:
+                          type: string
+                          nullable: true
+                          description: |
+                            Target workorder folder path for the device, if configured.
+                            Nexumed Desktop typically writes `fileName` into this folder.
+                          example: "C:\\Nexumed\\ECG"
+                        pathProcedure:
+                          type: string
+                          nullable: true
+                          description: Optional device procedure folder path, if applicable.
+                          example: "C:\\Nexumed\\ECG\\Results"
+                        fileName:
+                          type: string
+                          nullable: true
+                          description: |
+                            Suggested filename for the converted file.
+                            Defaults to `DEV1EMR1.gdt` if omitted.
+                          example: "DEV1EMR1.gdt"
+            example:
+              message: "Work order parsed (no routing applied yet)"
+              drsId: "98765432112"
+              emr: "Medinect"
+              procedure: "ECG"
+              format: "XML"
+              forwardedTo: null
+              converted:
+                mode: "file"
+                targetFormat: "GDT"
+                content: |
+                  01380006302
+                  014810000264
+                  014921801.00
+                  0188316114623234
+                  020300070072259768
+                  0183101DOE
+                  0203102JOHN
+                  017310319071980
+                  020310570072259768
+                  0273107Main Street 123
+                  01031101
+                  0123622184
+                  011362393
+                  0170102Medinect
+                pathWorkOrder: "C:\\Nexumed\\ECG"
+                pathProcedure: "C:\\Nexumed\\ECG\\Results"
+                fileName: "DEV1EMR1.gdt"
+      '400':
+        description: Bad request (missing apiKey or missing/invalid file)
+      '401':
+        description: Unauthorized (invalid API key)
+      '403':
+        description: Subscription inactive or not allowed
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
+                  example: Subscription inactive. Please renew.
+                drsId:
+                  type: string
+                  example: "98765432112"
+                emr:
+                  type: string
+                  example: "Medinect"
+      '404':
+        description: Doctor not found for this API key
+      '500':
+        description: Internal server error
+
 
 
 
