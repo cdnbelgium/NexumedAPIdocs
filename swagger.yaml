@@ -230,24 +230,24 @@ paths:
               converted:
                 mode: "file"
                 targetFormat: "GDT"
-                # content: |
-                #   01380006302
-                #   014810000264
-                #   014921801.00
-                #   0188316114623234
-                #   020300070072259768
-                #   0183101DOE
-                #   0203102JOHN
-                #   017310319071980
-                #   020310570072259768
-                #   0273107Main Street 123
-                #   01031101
-                #   0123622184
-                #   011362393
-                #   0170102Medinect
-                # pathWorkOrder: "C:\\Nexumed\\ECG"
-                # pathProcedure: "C:\\Nexumed\\ECG\\Results"
-                # fileName: "DEV1EMR1.gdt"
+                content: |
+                  01380006302
+                  014810000264
+                  014921801.00
+                  0188316114623234
+                  020300070072259768
+                  0183101DOE
+                  0203102JOHN
+                  017310319071980
+                  020310570072259768
+                  0273107Main Street 123
+                  01031101
+                  0123622184
+                  011362393
+                  0170102Medinect
+                pathWorkOrder: "C:\\Nexumed\\ECG"
+                pathProcedure: "C:\\Nexumed\\ECG\\Results"
+                fileName: "DEV1EMR1.gdt"
       '400':
         description: Bad request (missing apiKey or missing/invalid file)
       '401':
