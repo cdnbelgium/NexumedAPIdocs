@@ -154,25 +154,15 @@ paths:
                     example: true
                   procedures:
                     type: array
-                    description: Unique list of procedures enabled for this doctor
                     items:
                       type: string
-                      enum:
-                        - ECG
-                        - BP
-                        - Spiro
-                        - SPO2
-                        - TEMP
-                        - ABPM
-                        - Vital Signs
-                        - Otoscope
-                        - Dermatoscope
-                        - Ultrasound
-                    example:
-                      - Otoscope
-                      - Spiro
-                      - BP
-                      - ECG
+              example:
+                ok: true
+                procedures:
+                  - Otoscope
+                  - Spiro
+                  - BP
+                  - ECG
         "400":
           description: Bad request (missing apiKey)
         "401":
@@ -239,11 +229,17 @@ paths:
             application/xml:
               schema:
                 type: string
-                example: |
-                  <?xml version="1.0" encoding="UTF-8"?>
-                  <eid version="4.5">
-                    <identity nationalnumber="70072259768" dateofbirth="19700722" gender="male"/>
-                  </eid>
+              example: |
+                <?xml version="1.0" encoding="UTF-8"?>
+                <eid version="4.5">
+                  <identity nationalnumber="00000000000" dateofbirth="19700101" gender="male" specialstatus="NO_STATUS">
+                    <name>DOE JOHN</name>
+                    <firstname>JOHN</firstname>
+                    <nationality>BE</nationality>
+                    <placeofbirth>BRUSSELS</placeofbirth>
+                    <photo></photo>
+                  </identity>
+                </eid>
         "304":
           description: Not Modified (content unchanged since the provided ETag)
         "404":
