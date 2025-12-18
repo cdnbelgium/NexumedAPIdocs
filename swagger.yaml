@@ -11,167 +11,119 @@ info:
     **Endpoints Overview**:
     - `POST /api/receive-file-key`: Advanced file upload where the user's **API key** is explicitly provided via a query parameter, and the procedure type is automatically determined from the uploaded file.
     - `GET /api/procedures`: Returns the list of configured procedures (ECG, BP, Spiro, etc.) for the doctor associated with the provided API key.
-    - `GET /emr/eid/{drsId}/patient-data-out:`: Advanced file get, where the doctor's ID number (**drsID**) is explicitly provided via query parameters.
-    
+    - `GET /emr/eid/{drsId}/patient-data-out`: Get the most recently staged eID patient XML for a doctor.
 
 servers:
   - url: https://api.nexumed.eu
     description: Production server
 
 paths:
-  # /api/receive-file:
-  #   post:
-  #     summary: Upload work order file with explicit procedure routing
-  #     description: |
-  #       This endpoint allows an EMR to send a patient work order file to Nexumed **along with the intended procedure type** for direct routing to the appropriate device or service. Those file formats accepted are GDT/XML/HL7/FHIR and DICOM.
-  #       - Requires both the `drsID` and `procedure` query parameters.
-  #     parameters:
-  #       - name: drsID
-  #         in: query
-  #         required: true
-  #         description: Unique identifier for the doctor or practice sending the file
-  #         schema:
-  #           type: string
-  #       - name: procedure
-  #         in: query
-  #         required: true
-  #         description: Type of medical procedure to route the file to
-  #         schema:
-  #           type: string
-  #           enum: [ECG, BP, Spiro, SPO2, TEMP]
-  #     requestBody:
-  #       required: true
-  #       content:
-  #         multipart/form-data:
-  #           schema:
-  #             type: object
-  #             required: [file]
-  #             properties:
-  #               file:
-  #                 type: string
-  #                 format: binary
-  #                 description: The medical file to upload
-  #     responses:
-  #       '200':
-  #         description: File successfully uploaded
-  #         content:
-  #           application/json:
-  #             schema:
-  #               type: object
-  #               properties:
-  #                 message:
-  #                   type: string
-  #                   example: File successfully uploaded
-  #       '400': { description: Bad request (missing procedure, drsID, or file) }
-  #       '500': { description: Internal server error }
+  /api/receive-file-key:
+    post:
+      summary: Upload work order file using API key
+      description: |
+        Upload a patient work order file.
 
- /api/receive-file-key:
-  post:
-    summary: Upload work order file using API key
-    description: |
-      Upload a patient work order file.
+        Nexumed will:
+        - Validate the API key and doctor subscription.
+        - Detect file format (GDT / XML / HL7 / Unknown).
+        - Detect procedure from file content.
+        - Attempt to route and convert the work order internally based on the doctor's configuration.
 
-      Nexumed will:
-      - Validate the API key and doctor subscription.
-      - Detect file format (GDT / XML / HL7 / Unknown).
-      - Detect procedure from file content.
-      - Attempt to route and convert the work order internally based on the doctor's configuration.
-
-      This endpoint is intended as a fire-and-forget upload endpoint.
-    parameters:
-      - name: apiKey
-        in: query
-        required: true
-        description: API key provided by Nexumed for authenticating the sender
-        schema:
-          type: string
-    requestBody:
-      required: true
-      content:
-        multipart/form-data:
+        This endpoint is intended as a fire-and-forget upload endpoint.
+      parameters:
+        - name: apiKey
+          in: query
+          required: true
+          description: API key provided by Nexumed for authenticating the sender
           schema:
-            type: object
-            required:
-              - file
-            properties:
-              file:
-                type: string
-                format: binary
-                description: The medical work order file (GDT, XML, HL7).
-    responses:
-      "200":
-        description: File received and processed
+            type: string
+      requestBody:
+        required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
               type: object
+              required:
+                - file
               properties:
-                message:
+                file:
                   type: string
-                  example: Work order parsed
-                drsId:
-                  type: string
-                  example: "98765432112"
-                emr:
-                  type: string
-                  example: "EMR name"
-                procedure:
-                  type: string
-                  example: "Spiro"
-                format:
-                  type: string
-                  enum: [GDT, XML, HL7, Unknown]
-                  example: "XML"
-                converted:
-                  nullable: true
-                  description: |
-                    Conversion/routing status for this upload.
+                  format: binary
+                  description: The medical work order file (GDT, XML, HL7).
+      responses:
+        "200":
+          description: File received and processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Work order parsed
+                  drsId:
+                    type: string
+                    example: "98765432112"
+                  emr:
+                    type: string
+                    example: "EMR name"
+                  procedure:
+                    type: string
+                    example: "Spiro"
+                  format:
+                    type: string
+                    enum: [GDT, XML, HL7, Unknown]
+                    example: "XML"
+                  converted:
+                    nullable: true
+                    description: |
+                      Conversion/routing status for this upload.
 
-                    - null → no matching device configured for the detected procedure
-                    - file → work order routed and converted internally
-                    - mirQueue → work order queued internally (MIR HL7)
-                  oneOf:
-                    - type: "null"
-                    - type: object
-                      description: Conversion applied internally
-                      required:
-                        - mode
-                        - targetFormat
-                      properties:
-                        mode:
-                          type: string
-                          enum: ["file"]
-                          example: "file"
-                        targetFormat:
-                          type: string
-                          example: "GDT"
-                    - type: object
-                      description: MIR work order queued internally
-                      required:
-                        - mode
-                        - targetFormat
-                        - orderId
-                      properties:
-                        mode:
-                          type: string
-                          enum: ["mirQueue"]
-                          example: "mirQueue"
-                        targetFormat:
-                          type: string
-                          enum: ["HL7"]
-                          example: "HL7"
-                        orderId:
-                          type: string
-                          example: "c1f8a7b8-5c29-4dd3-b8c0-7f5f4c2a21cd"
-      "400":
-        description: Bad request (missing apiKey or missing file)
-      "401":
-        description: Unauthorized (invalid API key)
-      "403":
-        description: Subscription inactive or not allowed
-      "500":
-        description: Internal server error
-
+                      - null → no matching device configured for the detected procedure
+                      - file → work order routed and converted internally
+                      - mirQueue → work order queued internally (MIR HL7)
+                    oneOf:
+                      - type: "null"
+                      - type: object
+                        description: Conversion applied internally
+                        required:
+                          - mode
+                          - targetFormat
+                        properties:
+                          mode:
+                            type: string
+                            enum: ["file"]
+                            example: "file"
+                          targetFormat:
+                            type: string
+                            example: "GDT"
+                      - type: object
+                        description: MIR work order queued internally
+                        required:
+                          - mode
+                          - targetFormat
+                          - orderId
+                        properties:
+                          mode:
+                            type: string
+                            enum: ["mirQueue"]
+                            example: "mirQueue"
+                          targetFormat:
+                            type: string
+                            enum: ["HL7"]
+                            example: "HL7"
+                          orderId:
+                            type: string
+                            example: "c1f8a7b8-5c29-4dd3-b8c0-7f5f4c2a21cd"
+        "400":
+          description: Bad request (missing apiKey or missing file)
+        "401":
+          description: Unauthorized (invalid API key)
+        "403":
+          description: Subscription inactive or not allowed
+        "500":
+          description: Internal server error
 
   /api/procedures:
     get:
@@ -190,7 +142,7 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Successfully resolved procedures for this doctor
           content:
             application/json:
@@ -202,83 +154,43 @@ paths:
                     example: true
                   procedures:
                     type: array
-                    description: Unique list of procedures enabled for this doctor
                     items:
                       type: string
-                      enum:
-                        - ECG
-                        - BP
-                        - Spiro
-                        - SPO2
-                        - TEMP
-                        - ABPM
-                        - Vital Signs
-                        - Otoscope
-                        - Dermatoscope
-                        - Ultrasound
-                    example:
-                      - Otoscope
-                      - Spiro
-                      - BP
-                      - ECG
-        '400': { description: Bad request (missing apiKey) }
-        '401': { description: Unauthorized (invalid or unknown apiKey) }
-        '500': { description: Internal server error }
+        "400":
+          description: Bad request (missing apiKey)
+        "401":
+          description: Unauthorized (invalid or unknown apiKey)
+        "500":
+          description: Internal server error
 
   /emr/eid/{drsId}/patient-data-out:
     get:
       summary: eID reader — GET patient data XML
       description: |
         Returns the most recently staged eID patient XML for the given **drsId**.
-        Supports conditional requests via **If-None-Match**'' Returns **404** if no file is staged or it expired (5 min from time it has been pushed in the Nexumed App).
+        Supports conditional requests via **If-None-Match**.
+        Returns **404** if no file is staged or it expired (5 min from time it has been pushed in the Nexumed App).
       parameters:
         - name: drsId
           in: path
           required: true
-          description: Unique doctor/practice identifier used when staging the work order
-          schema: { type: string }
+          schema:
+            type: string
         - name: If-None-Match
           in: header
           required: false
-          description: ETag from a previous 200 response; if it matches, a **304 Not Modified** is returned
           schema:
             type: string
-            example: "\"6f1d7a1b9e2d3c4f...\""
       responses:
-        '200':
+        "200":
           description: XML found and returned
-          headers:
-            ETag:
-              description: Strong ETag for the XML body (quoted)
-              schema: { type: string, example: "\"6f1d7a1b9e2d3c4f...\"" }
-            Last-Modified:
-              description: When the payload was staged (HTTP-date)
-              schema: { type: string, example: "Tue, 04 Nov 2025 12:34:56 GMT" }
-            X-Checksum-SHA256:
-              description: SHA-256 checksum of the XML body (hex)
-              schema: { type: string, example: "6f1d7a1b9e2d3c4f9a0b..." }
-            Cache-Control:
-              description: No-store to prevent caching at rest
-              schema: { type: string, example: "no-store" }
-            Content-Disposition:
-              description: Suggested filename
-              schema: { type: string, example: "attachment; filename=\"patient-data-out.xml\"" }
-            Content-Length:
-              description: Length of the XML body in bytes
-              schema: { type: string, example: "12345" }
           content:
             application/xml:
               schema:
                 type: string
-                example: |
-                  <?xml version="1.0" encoding="UTF-8"?>
-                  <eid version="4.5">
-                    <identity nationalnumber="70072259768" dateofbirth="19700722" gender="male"/>
-                  </eid>
-        '304': { description: Not Modified (content unchanged since the provided ETag) }
-        '404':
-          description: No staged XML found for this drsId, or it has expired
-          content:
-            text/plain:
-              schema: { type: string, example: Not found or expired }
-        '500': { description: Internal server error }
+        "304":
+          description: Not Modified
+        "404":
+          description: Not found or expired
+        "500":
+          description: Internal server error
