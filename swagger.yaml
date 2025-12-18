@@ -162,6 +162,8 @@ paths:
           description: Unauthorized (invalid or unknown apiKey)
         "500":
           description: Internal server error
+
+          
 /emr/eid/{drsId}/patient-data-out:
   get:
     summary: eID reader — GET patient data XML
