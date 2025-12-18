@@ -154,8 +154,25 @@ paths:
                     example: true
                   procedures:
                     type: array
+                    description: Unique list of procedures enabled for this doctor
                     items:
                       type: string
+                      enum:
+                        - ECG
+                        - BP
+                        - Spiro
+                        - SPO2
+                        - TEMP
+                        - ABPM
+                        - Vital Signs
+                        - Otoscope
+                        - Dermatoscope
+                        - Ultrasound
+                    example:
+                      - Otoscope
+                      - Spiro
+                      - BP
+                      - ECG
         "400":
           description: Bad request (missing apiKey)
         "401":
@@ -163,92 +180,78 @@ paths:
         "500":
           description: Internal server error
 
-          
-/emr/eid/{drsId}/patient-data-out:
-  get:
-    summary: eID reader — GET patient data XML
-    description: |
-      Returns the most recently staged eID patient XML for the given **drsId**.
-
-      Supports conditional requests via **If-None-Match**.
-      Returns **404** if no file is staged or it expired (TTL is enforced server-side).
-    parameters:
-      - name: drsId
-        in: path
-        required: true
-        description: Unique doctor/practice identifier used when staging the XML
-        schema:
-          type: string
-      - name: If-None-Match
-        in: header
-        required: false
-        description: ETag from a previous 200 response; if it matches, a **304 Not Modified** is returned
-        schema:
-          type: string
-          example: "\"6f1d7a1b9e2d3c4f...\""
-    responses:
-      "200":
-        description: XML found and returned
-        headers:
-          Content-Type:
-            description: Always `application/xml; charset=utf-8`
-            schema:
-              type: string
-              example: "application/xml; charset=utf-8"
-          Cache-Control:
-            description: No-store to prevent caching at rest
-            schema:
-              type: string
-              example: "no-store"
-          Content-Disposition:
-            description: Suggested filename
-            schema:
-              type: string
-              example: "attachment; filename=\"patient-data-out.xml\""
-          ETag:
-            description: Strong ETag for the XML body (quoted SHA-256)
-            schema:
-              type: string
-              example: "\"6f1d7a1b9e2d3c4f...\""
-          Last-Modified:
-            description: When the payload was staged (HTTP-date)
-            schema:
-              type: string
-              example: "Tue, 04 Nov 2025 12:34:56 GMT"
-          X-Checksum-SHA256:
-            description: SHA-256 checksum of the XML body (hex)
-            schema:
-              type: string
-              example: "6f1d7a1b9e2d3c4f9a0b..."
-          Content-Length:
-            description: Length of the XML body in bytes
-            schema:
-              type: string
-              example: "12345"
-        content:
-          application/xml:
-            schema:
-              type: string
-              example: |
-                <?xml version="1.0" encoding="UTF-8"?>
-                <eid version="4.5">
-                  <identity nationalnumber="00000000000" dateofbirth="19700101" gender="male" specialstatus="NO_STATUS">
-                    <name>DOE JOHN</name>
-                    <firstname>JOHN</firstname>
-                    <nationality>BE</nationality>
-                    <placeofbirth>BRUSSELS</placeofbirth>
-                    <photo></photo>
-                  </identity>
-                </eid>
-      "304":
-        description: Not Modified (content unchanged since the provided ETag)
-      "404":
-        description: No staged XML found for this drsId, or it has expired
-        content:
-          text/plain:
-            schema:
-              type: string
-              example: Not found or expired
-      "500":
-        description: Internal server error
-
+  /emr/eid/{drsId}/patient-data-out:
+    get:
+      summary: eID reader — GET patient data XML
+      description: |
+        Returns the most recently staged eID patient XML for the given **drsId**.
+        Supports conditional requests via **If-None-Match**.
+        Returns **404** if no file is staged or it expired (5 min from time it has been pushed in the Nexumed App).
+      parameters:
+        - name: drsId
+          in: path
+          required: true
+          description: Unique doctor/practice identifier used when staging the work order
+          schema:
+            type: string
+        - name: If-None-Match
+          in: header
+          required: false
+          description: ETag from a previous 200 response; if it matches, a **304 Not Modified** is returned
+          schema:
+            type: string
+            example: "\"6f1d7a1b9e2d3c4f...\""
+      responses:
+        "200":
+          description: XML found and returned
+          headers:
+            ETag:
+              description: Strong ETag for the XML body (quoted)
+              schema:
+                type: string
+                example: "\"6f1d7a1b9e2d3c4f...\""
+            Last-Modified:
+              description: When the payload was staged (HTTP-date)
+              schema:
+                type: string
+                example: "Tue, 04 Nov 2025 12:34:56 GMT"
+            X-Checksum-SHA256:
+              description: SHA-256 checksum of the XML body (hex)
+              schema:
+                type: string
+                example: "6f1d7a1b9e2d3c4f9a0b..."
+            Cache-Control:
+              description: No-store to prevent caching at rest
+              schema:
+                type: string
+                example: "no-store"
+            Content-Disposition:
+              description: Suggested filename
+              schema:
+                type: string
+                example: "attachment; filename=\"patient-data-out.xml\""
+            Content-Length:
+              description: Length of the XML body in bytes
+              schema:
+                type: string
+                example: "12345"
+          content:
+            application/xml:
+              schema:
+                type: string
+                example: |
+                  <?xml version="1.0" encoding="UTF-8"?>
+                  <eid version="4.5">
+                    <identity nationalnumber="70072259768" dateofbirth="19700722" gender="male"/>
+                  </eid>
+        "304":
+          description: Not Modified (content unchanged since the provided ETag)
+        "404":
+          description: No staged XML found for this drsId, or it has expired
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Not found or expired
+        "500":
+          description: Internal server error
