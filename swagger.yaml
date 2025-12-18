@@ -75,14 +75,14 @@ paths:
                     type: string
                     enum: [GDT, XML, HL7, Unknown]
                     example: "XML"
-                  converted:
-                    nullable: true
-                    description: |
-                      Conversion/routing status for this upload.
+                  # converted:
+                  #   nullable: true
+                  #   description: |
+                  #     Conversion/routing status for this upload.
 
-                      - null → no matching device configured for the detected procedure
-                      - file → work order routed and converted internally
-                      - mirQueue → work order queued internally (MIR HL7)
+                  #     - null → no matching device configured for the detected procedure
+                  #     - file → work order routed and converted internally
+                  #     - mirQueue → work order queued internally (MIR HL7)
                     oneOf:
                       - type: "null"
                       - type: object
