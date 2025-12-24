@@ -298,12 +298,12 @@ paths:
                     createdAt: "2025-12-24T10:56:11.982Z"
                     files:
                       - type: "KMEHR_XML"
-                        fileName: "JANS_kmehr_1766573771982.xml"
+                        fileName: "SMITH_kmehr_1766573771982.xml"
                         mimeType: "application/xml"
                         encoding: "utf8"
                         content: "<kmehrmessage xmlns=\"http://www.ehealth.fgov.be/standards/kmehr/schema/v1\">...</kmehrmessage>"
                       - type: "PDF"
-                        fileName: "JANS_ECG_1766573771960.pdf"
+                        fileName: "SMITH_ECG_1766573771960.pdf"
                         mimeType: "application/pdf"
                         encoding: "base64"
                         content: "JVBERi0xLjQKJ..."
@@ -315,10 +315,15 @@ paths:
                     createdAt: "2025-12-24T10:56:36.299Z"
                     files:
                       - type: "KMEHR_XML"
-                        fileName: "SCHARLACH_kmehr_1766573796299.xml"
+                        fileName: "ANDERSON_kmehr_1766573796299.xml"
                         mimeType: "application/xml"
                         encoding: "utf8"
                         content: "<kmehrmessage ...>...</kmehrmessage>"
+                      - type: "PDF"
+                        fileName: "ANDERSON_ECG_1766573771960.pdf"
+                        mimeType: "application/pdf"
+                        encoding: "base64"
+                        content: "JVBERi0xLjQKJ..."
         "204":
           description: No queued results available (empty queue)
         "400":
