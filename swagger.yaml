@@ -12,6 +12,7 @@ info:
     - `POST /api/receive-file-key`: Advanced file upload where the user's **API key** is explicitly provided via a query parameter, and the procedure type is automatically determined from the uploaded file.
     - `GET /api/procedures`: Returns the list of configured procedures (ECG, BP, Spiro, etc.) for the doctor associated with the provided API key.
     - `GET /emr/eid/{drsId}/patient-data-out`: Get the most recently staged eID patient XML for a doctor.
+    - `GET /api/emr/results`: Returns all queued result files (e.g. File format needed, PDFs) for the doctor's configured EMR provider.
 
 servers:
   - url: https://api.nexumed.eu
@@ -73,16 +74,8 @@ paths:
                     example: "Spiro"
                   format:
                     type: string
-                    enum: [GDT, XML, HL7, Unknown]
+                    enum: [GDT, XML, HL7, FHIR, Unknown]
                     example: "XML"
-                  # converted:
-                  #   nullable: true
-                  #   description: |
-                  #     Conversion/routing status for this upload.
-
-                  #     - null → no matching device configured for the detected procedure
-                  #     - file → work order routed and converted internally
-                  #     - mirQueue → work order queued internally (MIR HL7)
                     oneOf:
                       - type: "null"
                       - type: object
@@ -251,3 +244,150 @@ paths:
                 example: Not found or expired
         "500":
           description: Internal server error
+
+  /api/emr/results:
+    get:
+      summary: Fetch queued EMR results (via API key) and clear the queue
+      description: |
+        Returns **all queued results** currently staged for this doctor's configured EMR provider,
+        then **clears the queue** (Redis list) so the same results are not returned again.
+
+        This is intended for EMRs that poll periodically (e.g. every few minutes or end-of-day).
+      parameters:
+        - name: apiKey
+          in: query
+          required: true
+          description: API key provided by Nexumed for authenticating the EMR / doctor
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Results returned successfully (queue was cleared after reading)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, provider, count, results]
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  provider:
+                    type: string
+                    example: "Medinect"
+                  count:
+                    type: integer
+                    example: 2
+                  results:
+                    type: array
+                    description: |
+                      Array of result objects (each item is a JSON object previously queued by Nexumed).
+                      Contents can include XML/PDF payloads and metadata like procedure/device/model.
+                    items:
+                      type: object
+                      additionalProperties: true
+              example:
+                ok: true
+                provider: "Medinect"
+                count: 2
+                results:
+                  - resultId: "43feba5-6c91-436a-9e9e-2771ecc2ebfd"
+                    provider: "Medinect"
+                    procedure: "ECG"
+                    device: "SCHILLER"
+                    model: "CARDIOVIT-AT-102-G2"
+                    createdAt: "2025-12-24T10:56:11.982Z"
+                    files:
+                      - type: "KMEHR_XML"
+                        fileName: "JANS_kmehr_1766573771982.xml"
+                        mimeType: "application/xml"
+                        encoding: "utf8"
+                        content: "<kmehrmessage xmlns=\"http://www.ehealth.fgov.be/standards/kmehr/schema/v1\">...</kmehrmessage>"
+                      - type: "PDF"
+                        fileName: "JANS_ECG_1766573771960.pdf"
+                        mimeType: "application/pdf"
+                        encoding: "base64"
+                        content: "JVBERi0xLjQKJ..."
+                  - resultId: "3707f1ca-11da-4fe4-8756-d557d42405c2"
+                    provider: "Medinect"
+                    procedure: "ECG"
+                    device: "SCHILLER"
+                    model: "CARDIOVIT-AT-102-G2"
+                    createdAt: "2025-12-24T10:56:36.299Z"
+                    files:
+                      - type: "KMEHR_XML"
+                        fileName: "SCHARLACH_kmehr_1766573796299.xml"
+                        mimeType: "application/xml"
+                        encoding: "utf8"
+                        content: "<kmehrmessage ...>...</kmehrmessage>"
+        "204":
+          description: No queued results available (empty queue)
+        "400":
+          description: Bad request (missing apiKey, or user has no EMR provider configured)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: "Missing apiKey"
+        "401":
+          description: Unauthorized (invalid API key)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: "Invalid API key"
+        "403":
+          description: Subscription inactive or not allowed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: "Subscription inactive"
+                  drsId:
+                    type: string
+                    example: "98765432112"
+        "503":
+          description: Redis not configured
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: "Redis not configured"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: "Failed to fetch EMR results"
+
