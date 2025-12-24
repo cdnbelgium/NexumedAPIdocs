@@ -249,10 +249,9 @@ paths:
     get:
       summary: Fetch queued EMR results (via API key).
       description: |
-        Returns **all queued results** currently staged for this doctor's configured EMR provider,
-        then **clears the queue** (Redis list) so the same results are not returned again.
+        Returns **all queued results** currently staged for this doctor's configured EMR provider.
 
-        This is intended for EMRs that poll periodically (e.g. every few minutes or end-of-day).
+        This is intended for EMRs to request periodically (e.g. after each patient or end-of-day).
       parameters:
         - name: apiKey
           in: query
