@@ -25,6 +25,11 @@ paths:
       description: |
         Upload a patient work order file.
 
+         **Authentication**:
+            This endpoint requires the API key to be provided as a **query parameter**, for example:
+
+            `POST /api/receive-file-key?apiKey=YOUR_API_KEY`
+
         Nexumed will:
         - Validate the API key and doctor subscription.
         - Detect file format (GDT / XML / HL7 / Unknown).
@@ -124,6 +129,11 @@ paths:
       description: |
         Returns the list of unique procedures (e.g. ECG, BP, Spiro, Otoscope) configured
         for the doctor associated with the provided API key.
+
+        **Authentication**:
+          This endpoint requires the API key to be provided as a **query parameter**, for example:
+
+          `GET /api/procedures?apiKey=YOUR_API_KEY`
 
         The API key is used to look up the doctor and their selected devices inside Nexumed;
         The procedure names are returned in the response.
@@ -250,6 +260,11 @@ paths:
       summary: Fetch queued EMR results (via API key).
       description: |
         Returns **all queued results** currently staged for this doctor's configured EMR provider.
+
+         **Authentication**:
+            This endpoint requires the API key to be provided as a **query parameter**, for example:
+
+            `GET /api/emr/results?apiKey=YOUR_API_KEY`
 
         This is intended for EMRs to request periodically (e.g. after each patient or end-of-day).
       parameters:
