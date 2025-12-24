@@ -247,7 +247,7 @@ paths:
 
   /api/emr/results:
     get:
-      summary: Fetch queued EMR results (via API key) and clear the queue
+      summary: Fetch queued EMR results (via API key).
       description: |
         Returns **all queued results** currently staged for this doctor's configured EMR provider,
         then **clears the queue** (Redis list) so the same results are not returned again.
@@ -274,7 +274,7 @@ paths:
                     example: true
                   provider:
                     type: string
-                    example: "Medinect"
+                    example: "EMR name"
                   count:
                     type: integer
                     example: 2
@@ -364,19 +364,6 @@ paths:
                   drsId:
                     type: string
                     example: "98765432112"
-        "503":
-          description: Redis not configured
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  ok:
-                    type: boolean
-                    example: false
-                  error:
-                    type: string
-                    example: "Redis not configured"
         "500":
           description: Internal server error
           content:
