@@ -287,11 +287,11 @@ paths:
                       additionalProperties: true
               example:
                 ok: true
-                provider: "Medinect"
+                provider: "EMR name"
                 count: 2
                 results:
                   - resultId: "43feba5-6c91-436a-9e9e-2771ecc2ebfd"
-                    provider: "Medinect"
+                    provider: "EMR name"
                     procedure: "ECG"
                     device: "SCHILLER"
                     model: "CARDIOVIT-AT-102-G2"
@@ -308,7 +308,7 @@ paths:
                         encoding: "base64"
                         content: "JVBERi0xLjQKJ..."
                   - resultId: "3707f1ca-11da-4fe4-8756-d557d42405c2"
-                    provider: "Medinect"
+                    provider: "EMR name"
                     procedure: "ECG"
                     device: "SCHILLER"
                     model: "CARDIOVIT-AT-102-G2"
