@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  title: Nexumed API - Work Order Upload
+  title: Nexumed API
   version: 1.0.0
   description: |
     This API allows EMRs to send patient work order files to Nexumed for secure processing and device-specific routing.
@@ -9,7 +9,7 @@ info:
 
     ---
     **Endpoints Overview**:
-    - `POST /api/receive-file-key`: Advanced file upload where the user's **API key** is explicitly provided via a query parameter, and the procedure type is automatically determined from the uploaded file.
+    - `POST /api/receive-file-key`: Advanced file upload where the user's **API key** is provided via header (`x-api-key` or `Authorization`) or query parameter, and the procedure type is automatically determined from the uploaded file.
     - `GET /api/procedures`: Returns the list of configured procedures (ECG, BP, Spiro, etc.) for the doctor associated with the provided API key.
     - `GET /emr/eid/{drsId}/patient-data-out`: Get the most recently staged eID patient XML for a doctor.
     - `GET /api/emr/results`: Returns all queued result files (e.g. File format needed, PDFs) for the doctor's configured EMR provider.
@@ -25,10 +25,12 @@ paths:
       description: |
         Upload a patient work order file.
 
-         **Authentication**:
-            This endpoint requires the API key to be provided as a **query parameter**, for example:
+        **Authentication**:
+        One of the following methods must be used:
 
-            `POST /api/receive-file-key?apiKey=YOUR_API_KEY`
+        - HTTP header: `x-api-key: YOUR_API_KEY` (recommended)
+        - HTTP header: `Authorization: Bearer YOUR_API_KEY`
+        - Query parameter: `POST /api/receive-file-key?apiKey=YOUR_API_KEY` (backward compatible)
 
         Nexumed will:
         - Validate the API key and doctor subscription.
@@ -37,26 +39,28 @@ paths:
         - Attempt to route and convert the work order internally based on the doctor's configuration.
 
         This endpoint is intended as a fire-and-forget upload endpoint.
+
       parameters:
         - name: apiKey
           in: query
-          required: true
-          description: API key provided by Nexumed for authenticating the sender
+          required: false
+          description: API key (optional if provided via HTTP headers)
           schema:
             type: string
+
       requestBody:
         required: true
         content:
           multipart/form-data:
             schema:
               type: object
-              required:
-                - file
+              required: [file]
               properties:
                 file:
                   type: string
                   format: binary
                   description: The medical work order file (GDT, XML, HL7).
+
       responses:
         "200":
           description: File received and processed
@@ -64,6 +68,7 @@ paths:
             application/json:
               schema:
                 type: object
+                required: [message, drsId, emr, procedure, format]
                 properties:
                   message:
                     type: string
@@ -79,15 +84,21 @@ paths:
                     example: "Spiro"
                   format:
                     type: string
-                    enum: [GDT, XML, HL7, FHIR, Unknown]
+                    enum: [GDT, XML, HL7, Unknown]
                     example: "XML"
+                  device:
+                    nullable: true
+                    description: Matching device configuration for this procedure (if found)
+                    type: object
+                    additionalProperties: true
+                  converted:
+                    nullable: true
+                    description: Present when a conversion or queue action was performed; otherwise null
                     oneOf:
                       - type: "null"
                       - type: object
-                        description: Conversion applied internally
-                        required:
-                          - mode
-                          - targetFormat
+                        description: Conversion applied internally (file mode)
+                        required: [mode, targetFormat]
                         properties:
                           mode:
                             type: string
@@ -98,10 +109,7 @@ paths:
                             example: "GDT"
                       - type: object
                         description: MIR work order queued internally
-                        required:
-                          - mode
-                          - targetFormat
-                          - orderId
+                        required: [mode, targetFormat, orderId]
                         properties:
                           mode:
                             type: string
@@ -114,12 +122,15 @@ paths:
                           orderId:
                             type: string
                             example: "c1f8a7b8-5c29-4dd3-b8c0-7f5f4c2a21cd"
+
         "400":
-          description: Bad request (missing apiKey or missing file)
+          description: Bad request (missing API key or missing file)
         "401":
           description: Unauthorized (invalid API key)
         "403":
           description: Subscription inactive or not allowed
+        "413":
+          description: File too large
         "500":
           description: Internal server error
 
@@ -131,17 +142,19 @@ paths:
         for the doctor associated with the provided API key.
 
         **Authentication**:
-          This endpoint requires the API key to be provided as a **query parameter**, for example:
+        One of the following methods must be used:
 
-          `GET /api/procedures?apiKey=YOUR_API_KEY`
+        - HTTP header: `x-api-key: YOUR_API_KEY` (recommended)
+        - HTTP header: `Authorization: Bearer YOUR_API_KEY`
+        - Query parameter: `GET /api/procedures?apiKey=YOUR_API_KEY` (backward compatible)
 
         The API key is used to look up the doctor and their selected devices inside Nexumed;
         The procedure names are returned in the response.
       parameters:
         - name: apiKey
           in: query
-          required: true
-          description: API key provided by Nexumed for authenticating the EMR / doctor
+          required: false
+          description: API key (optional if provided via HTTP headers)
           schema:
             type: string
       responses:
@@ -261,17 +274,19 @@ paths:
       description: |
         Returns **all queued results** currently staged for this doctor's configured EMR provider.
 
-         **Authentication**:
-            This endpoint requires the API key to be provided as a **query parameter**, for example:
+        **Authentication**:
+        One of the following methods must be used:
 
-            `GET /api/emr/results?apiKey=YOUR_API_KEY`
+        - HTTP header: `x-api-key: YOUR_API_KEY` (recommended)
+        - HTTP header: `Authorization: Bearer YOUR_API_KEY`
+        - Query parameter: `GET /api/emr/results?apiKey=YOUR_API_KEY` (backward compatible)
 
         This is intended for EMRs to request periodically (e.g. after each patient or end-of-day).
       parameters:
         - name: apiKey
           in: query
-          required: true
-          description: API key provided by Nexumed for authenticating the EMR / doctor
+          required: false
+          description: API key (optional if provided via HTTP headers)
           schema:
             type: string
       responses:
@@ -396,4 +411,3 @@ paths:
                   error:
                     type: string
                     example: "Failed to fetch EMR results"
-
