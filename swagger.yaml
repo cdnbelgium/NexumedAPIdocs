@@ -9,6 +9,7 @@ info:
 
     ---
     **Endpoints Overview**:
+    - `POST /api/healthone/new-account`: HealthOne provisioning endpoint (OAuth-protected) to create a practice + admin + users.
     - `POST /api/receive-file-key`: Advanced file upload where the practice **API key** is provided via HTTP header (`x-api-key`). Nexumed automatically determines the procedure type from the uploaded file.
     - `GET /api/emr/procedures`: Returns the list of configured procedures (ECG, BP, Spiro, etc.) for the **practice** associated with the provided API key.
     - `GET /emr/eid/{drsId}/patient-data-out`: Get the most recently staged eID patient XML for a doctor.
@@ -25,7 +26,237 @@ components:
       in: header
       name: x-api-key
 
+    HealthOneOAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+
+    HealthOneIncomingUser:
+      type: object
+      required: [email, drsId]
+      properties:
+        email:
+          type: string
+          example: "dr.vangastel@nexumed.be"
+        role:
+          type: string
+          example: "Doctor"
+        drsId:
+          type: string
+          example: "12345678901"
+        firstName:
+          type: string
+          example: "Andre"
+        lastName:
+          type: string
+          example: "Van Gastel"
+
+    HealthOnePractice:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          example: "Huisartsenpraktijk Scharlach"
+        vat:
+          type: string
+          example: "BE0123456789"
+        addressLine1:
+          type: string
+          example: "Kerkstraat 10"
+        postalCode:
+          type: string
+          example: "2000"
+        town:
+          type: string
+          example: "Antwerpen"
+        countryCode:
+          type: string
+          example: "BE"
+        phone:
+          type: string
+          example: "+32479172881"
+
+    HealthOneProvisioningPayload:
+      type: object
+      required: [schemaVersion, practice, admin, users]
+      properties:
+        schemaVersion:
+          type: string
+          example: "1.0"
+        practice:
+          $ref: "#/components/schemas/HealthOnePractice"
+        admin:
+          $ref: "#/components/schemas/HealthOneIncomingUser"
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/HealthOneIncomingUser"
+
+    HealthOneProvisioningCreatedItem:
+      type: object
+      required: [email, drsId, userId, isAdmin]
+      properties:
+        email:
+          type: string
+        drsId:
+          type: string
+        userId:
+          type: string
+        isAdmin:
+          type: boolean
+
+    HealthOneProvisioningSkippedItem:
+      type: object
+      required: [email, drsId, reason]
+      properties:
+        email:
+          type: string
+        drsId:
+          type: string
+        reason:
+          type: string
+
+    HealthOneProvisioningResponse:
+      type: object
+      required: [ok, practice, createdCount, skippedCount, created, skipped]
+      properties:
+        ok:
+          type: boolean
+          example: true
+        practice:
+          type: object
+          required: [name, practiceId]
+          properties:
+            name:
+              type: string
+            practiceId:
+              type: string
+        createdCount:
+          type: integer
+        skippedCount:
+          type: integer
+        created:
+          type: array
+          items:
+            $ref: "#/components/schemas/HealthOneProvisioningCreatedItem"
+        skipped:
+          type: array
+          items:
+            $ref: "#/components/schemas/HealthOneProvisioningSkippedItem"
+
 paths:
+  /api/healthone/new-account:
+    post:
+      summary: HealthOne — Provision a new practice (admin + users)
+      description: |
+        Creates a new Nexumed practice context for HealthOne, including:
+        - 1 admin user (source of truth for practice configuration)
+        - 0..N additional users
+        - A practiceId (generated if the practice does not already exist)
+        - A practice API key (generated once and sent **only to the admin** via email)
+        - Email provisioning (verification + temporary password) for all created users
+
+        **Important notes**
+        - The API key is **not** returned in the API response; it is sent to the admin via email.
+        - If a user already exists (email or drsId), they are skipped.
+        - `practiceId` is resolved as:
+          - If an existing user already has the same practice name + practiceId, that practiceId is reused.
+          - Otherwise a new unique practiceId is generated.
+      security:
+        - HealthOneOAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HealthOneProvisioningPayload"
+            example:
+              schemaVersion: "1.0"
+              practice:
+                name: "Huisartsenpraktijk Scharlach"
+                vat: "BE0123456789"
+                addressLine1: "Kerkstraat 10"
+                postalCode: "2000"
+                town: "Antwerpen"
+                countryCode: "BE"
+                phone: "+32479172881"
+              admin:
+                email: "admin@nexumed.be"
+                role: "Admin"
+                drsId: "HO-ADMIN-0001"
+                firstName: "Joel"
+                lastName: "Scharlach"
+              users:
+                - email: "dr.vangastel@nexumed.be"
+                  role: "Doctor"
+                  drsId: "12345678901"
+                  firstName: "Andre"
+                  lastName: "Van Gastel"
+                - email: "dr.schoofs@nexumed.be"
+                  role: "Doctor"
+                  drsId: "10987654321"
+                  firstName: "Lies"
+                  lastName: "Schoofs"
+      responses:
+        "201":
+          description: Provisioning completed (some users may be skipped)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthOneProvisioningResponse"
+              example:
+                ok: true
+                practice:
+                  name: "Huisartsenpraktijk Scharlach"
+                  practiceId: "1234567080226"
+                createdCount: 2
+                skippedCount: 1
+                created:
+                  - email: "admin@nexumed.be"
+                    drsId: "HO-ADMIN-0001"
+                    userId: "65f0c2a3d9b1c3a2d1e4f123"
+                    isAdmin: true
+                  - email: "dr.vangastel@nexumed.be"
+                    drsId: "12345678901"
+                    userId: "65f0c2a3d9b1c3a2d1e4f456"
+                    isAdmin: false
+                skipped:
+                  - email: "dr.schoofs@nexumed.be"
+                    drsId: "10987654321"
+                    reason: "user already exists (email or drsId)"
+        "400":
+          description: Invalid request (missing required fields)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: "admin.email and admin.drsId are required"
+        "401":
+          description: Unauthorized (missing/invalid OAuth token)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: "Unauthorized"
+        "500":
+          description: Internal server error (provisioning failed)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: "Failed to provision HealthOne practice."
+
   /api/receive-file-key:
     post:
       summary: Upload work order file using API key
