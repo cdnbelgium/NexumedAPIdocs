@@ -9,11 +9,11 @@ info:
 
     ---
     **Endpoints Overview**:
-    - `POST /api/healthone/new-account`: HealthOne provisioning endpoint (OAuth-protected) to create a practice + admin + users.
-    - `POST /api/receive-file-key`: Advanced file upload where the practice **API key** is provided via HTTP header (`x-api-key`). Nexumed automatically determines the procedure type from the uploaded file.
-    - `GET /api/emr/procedures`: Returns the list of configured procedures (ECG, BP, Spiro, etc.) for the **practice** associated with the provided API key.
+    - `POST /api/healthone/new-account`: HealthOne provisioning endpoint (OAuth-protected) to create a clinic + admin + users.
+    - `POST /api/receive-file-key`: Advanced file upload where the clinic **API key** is provided via HTTP header (`x-api-key`). Nexumed automatically determines the procedure type from the uploaded file.
+    - `GET /api/emr/procedures`: Returns the list of configured procedures (ECG, BP, Spiro, etc.) for the **clinic** associated with the provided API key.
     - `GET /emr/eid/{drsId}/patient-data-out`: Get the most recently staged eID patient XML for a doctor.
-    - `GET /api/emr/results`: Returns all queued result files (e.g. required file formats, PDFs) for the practice’s configured EMR provider.
+    - `GET /api/emr/results`: Returns all queued result files (e.g. required file formats, PDFs) for the clinic’s configured EMR provider.
 
 servers:
   - url: https://api.nexumed.eu
@@ -58,7 +58,7 @@ components:
           type: string
           example: "Van Gastel"
 
-    HealthOnePractice:
+    HealthOneClinic:
       type: object
       required: [name]
       properties:
@@ -86,13 +86,13 @@ components:
 
     HealthOneProvisioningPayload:
       type: object
-      required: [schemaVersion, practice, admin, users]
+      required: [schemaVersion, clinic, admin, users]
       properties:
         schemaVersion:
           type: string
           example: "1.0"
-        practice:
-          $ref: "#/components/schemas/HealthOnePractice"
+        clinic:
+          $ref: "#/components/schemas/HealthOneClinic"
         admin:
           $ref: "#/components/schemas/HealthOneIncomingUser"
         users:
@@ -126,12 +126,12 @@ components:
 
     HealthOneProvisioningResponse:
       type: object
-      required: [ok, practice, createdCount, skippedCount, created, skipped]
+      required: [ok, clinic, createdCount, skippedCount, created, skipped]
       properties:
         ok:
           type: boolean
           example: true
-        practice:
+        clinic:
           type: object
           required: [name, practiceId]
           properties:
@@ -155,21 +155,20 @@ components:
 paths:
   /api/healthone/new-account:
     post:
-      summary: HealthOne — Provision a new practice (admin + users)
+      summary: HealthOne — Provision a new clinic (admin + users)
       description: |
-        Creates a new Nexumed practice context for HealthOne, including:
-        - 1 admin user (source of truth for practice configuration)
+        Creates a new Nexumed clinic context for HealthOne, including:
+        - 1 admin user (source of truth for clinic configuration)
         - 0..N additional users
-        - A practiceId (generated if the practice does not already exist)
-        - A practice API key (generated once and sent **only to the admin** via email)
+        - A clinic API key (generated once and sent **only to the admin** via email)
         - Email provisioning (verification + temporary password) for all created users
 
         **Important notes**
         - The API key is **not** returned in the API response; it is sent to the admin via email.
-        - The Admin can be anyone of staff, doctor, nurse or office manager.  Just a designated staff memeber to fill the role
+        - The Admin can be any member of staff (doctor, nurse, office manager, etc.) designated to fill the role.
         - If a user already exists (email or drsId), they are skipped.
         - `practiceId` is resolved as:
-          - If an existing user already has the same practice name + practiceId, tht practiceId is reused.
+          - If an existing user already has the same clinic name + practiceId, that practiceId is reused.
           - Otherwise a new unique practiceId is generated.
       security:
         - HealthOneOAuth: []
@@ -181,7 +180,7 @@ paths:
               $ref: "#/components/schemas/HealthOneProvisioningPayload"
             example:
               schemaVersion: "1.0"
-              practice:
+              clinic:
                 name: "Huisartsenpraktijk Scharlach"
                 vat: "BE0123456789"
                 addressLine1: "Kerkstraat 10"
@@ -215,7 +214,7 @@ paths:
                 $ref: "#/components/schemas/HealthOneProvisioningResponse"
               example:
                 ok: true
-                practice:
+                clinic:
                   name: "Huisartsenpraktijk Scharlach"
                   practiceId: "1234567080226"
                 createdCount: 2
@@ -256,7 +255,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
               example:
-                message: "Failed to provision HealthOne practice."
+                message: "Failed to provision HealthOne clinic."
 
   /api/receive-file-key:
     post:
@@ -271,7 +270,7 @@ paths:
         - Validate the API key and subscription.
         - Detect file format (GDT / XML / HL7 / Unknown).
         - Detect procedure from file content.
-        - Attempt to route and convert the work order internally based on the practice configuration.
+        - Attempt to route and convert the work order internally based on the clinic configuration.
 
         This endpoint is intended as a fire-and-forget upload endpoint.
       security:
@@ -365,21 +364,21 @@ paths:
 
   /api/emr/procedures:
     get:
-      summary: Get procedures configured for a practice (via API key)
+      summary: Get procedures configured for a clinic (via API key)
       description: |
         Returns the list of unique procedures (e.g. ECG, BP, Spiro, TEMP)
-        configured for the practice associated with the provided API key.
+        configured for the clinic associated with the provided API key.
 
         **Authentication**:
         - HTTP header: `x-api-key: YOUR_API_KEY`
 
-        The API key is used to look up the practice owner (admin = true) inside Nexumed;
-        procedure names are returned from the practice’s shared device configuration.
+        The API key is used to look up the clinic owner (admin = true) inside Nexumed;
+        procedure names are returned from the clinic’s shared device configuration.
       security:
         - ApiKeyAuth: []
       responses:
         "200":
-          description: Successfully resolved procedures for this practice
+          description: Successfully resolved procedures for this clinic
           content:
             application/json:
               schema:
@@ -492,7 +491,7 @@ paths:
     get:
       summary: Fetch queued EMR results (via API key).
       description: |
-        Returns **all queued results** currently staged for the practice’s configured EMR provider.
+        Returns **all queued results** currently staged for the clinic’s configured EMR provider.
 
         **Authentication**:
         - HTTP header: `x-api-key: YOUR_API_KEY`
