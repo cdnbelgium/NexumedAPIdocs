@@ -166,9 +166,10 @@ paths:
 
         **Important notes**
         - The API key is **not** returned in the API response; it is sent to the admin via email.
+        - The Admin can be anyone of staff, doctor, nurse or office manager.  Just a designated staff memeber to fill the role
         - If a user already exists (email or drsId), they are skipped.
         - `practiceId` is resolved as:
-          - If an existing user already has the same practice name + practiceId, that practiceId is reused.
+          - If an existing user already has the same practice name + practiceId, tht practiceId is reused.
           - Otherwise a new unique practiceId is generated.
       security:
         - HealthOneOAuth: []
@@ -191,7 +192,7 @@ paths:
               admin:
                 email: "admin@nexumed.be"
                 role: "Admin"
-                drsId: "HO-ADMIN-0001"
+                drsId: "12345678965"
                 firstName: "Joel"
                 lastName: "Scharlach"
               users:
@@ -259,7 +260,7 @@ paths:
 
   /api/receive-file-key:
     post:
-      summary: Upload work order file using API key
+      summary: Upload work order file (via API key)
       description: |
         Upload a patient work order file.
 
