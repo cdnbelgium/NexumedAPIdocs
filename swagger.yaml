@@ -23,7 +23,7 @@ servers:
 tags:
   - name: HealthOne
     description: HealthOne integration endpoints (provisioning + work orders)
-  - name: EMR
+  - name: EMR 
     description: Generic EMR endpoints (procedures, results, uploads)
   - name: eID
     description: eID reader endpoints

@@ -16,7 +16,7 @@
         padding: 1rem;
         display: flex;
         align-items: center;
-        background: #006e8a; /* Nexumed blue */
+        background: #006e8a;
         color: white;
       }
       header img {
@@ -34,26 +34,31 @@
       <img src="/nexumed.svg" alt="Nexumed logo" />
       <h1>Nexumed API Docs</h1>
     </header>
+
     <div id="redoc-container"></div>
+
     <script>
       window.addEventListener('DOMContentLoaded', function () {
-        Redoc.init('/swagger.yaml',
+        Redoc.init(
+          '/swagger.yaml',
           {
             hideDownloadButton: true,
+
+            // ✅ makes the left menu less “accordion-y”
+            menuToggle: false,
+
+            // optional: cleaner docs
+            hideOneOfDescription: true,
+            expandResponses: "200,201",
+
             theme: {
               colors: {
-                primary: {
-                  main: '#006e8a' 
-                },
-                success: {
-                  main: '#36b37e'
-                }
+                primary: { main: '#006e8a' },
+                success: { main: '#36b37e' }
               },
               typography: {
                 fontFamily: 'Segoe UI, sans-serif',
-                headings: {
-                  fontFamily: 'Segoe UI, sans-serif'
-                }
+                headings: { fontFamily: 'Segoe UI, sans-serif' }
               }
             }
           },
@@ -63,4 +68,5 @@
     </script>
   </body>
 </html>
+
 
