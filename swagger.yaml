@@ -48,6 +48,8 @@ components:
           example: "dr.vangastel@nexumed.be"
         role:
           type: string
+          description: Must be one of the supported HealthOne roles.
+          enum: ["Doctor", "Nurse", "Office Manager", "Admin", "IT"]
           example: "Doctor"
         drsId:
           type: string
