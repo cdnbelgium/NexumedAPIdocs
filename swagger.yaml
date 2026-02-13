@@ -10,6 +10,7 @@ info:
     ---
     **Endpoints Overview**:
     - `POST /api/healthone/new-account`: HealthOne provisioning endpoint (OAuth-protected) to create a clinic + admin + users.
+    - `POST /api/healthone/workorders`: HealthOne work order endpoint (API key) to submit patient + procedure work orders in JSON.
     - `POST /api/receive-file-key`: Advanced file upload where the clinic **API key** is provided via HTTP header (`x-api-key`). Nexumed automatically determines the procedure type from the uploaded file.
     - `GET /api/emr/procedures`: Returns the list of configured procedures (ECG, BP, Spiro, etc.) for the **clinic** associated with the provided API key.
     - `GET /emr/eid/{drsId}/patient-data-out`: Get the most recently staged eID patient XML for a doctor.
@@ -18,6 +19,14 @@ info:
 servers:
   - url: https://api.nexumed.eu
     description: Production server
+
+tags:
+  - name: HealthOne
+    description: HealthOne integration endpoints (provisioning + work orders)
+  - name: EMR
+    description: Generic EMR endpoints (procedures, results, uploads)
+  - name: eID
+    description: eID reader endpoints
 
 components:
   securitySchemes:
@@ -152,9 +161,119 @@ components:
           items:
             $ref: "#/components/schemas/HealthOneProvisioningSkippedItem"
 
+    HealthOneWorkOrderPatient:
+      type: object
+      required: [id, firstName, lastName]
+      properties:
+        id:
+          type: string
+          example: "8234576"
+        firstName:
+          type: string
+          example: "John"
+        lastName:
+          type: string
+          example: "Doe"
+        birthDate:
+          type: string
+          description: ISO date (YYYY-MM-DD)
+          example: "2000-10-01"
+        gender:
+          description: |
+            HealthOne gender code. Nexumed will normalize internally.
+            (e.g., 1=Male, 2=Female depending on HealthOne convention)
+          oneOf:
+            - type: integer
+            - type: string
+          example: 1
+
+    HealthOneWorkOrderDoctor:
+      type: object
+      properties:
+        drsId:
+          type: string
+          example: "12345678901"
+        firstName:
+          type: string
+          example: "Andre"
+        lastName:
+          type: string
+          example: "Van Gastel"
+
+    HealthOneWorkOrderPayload:
+      type: object
+      required: [schemaVersion, procedure, patient]
+      properties:
+        schemaVersion:
+          type: string
+          example: "1.0"
+        visitNumber:
+          type: string
+          example: "1234"
+        activityId:
+          type: string
+          example: "12345"
+        scheduledDateTime:
+          type: string
+          description: ISO datetime (recommended with timezone)
+          example: "2026-02-04T15:30:00+01:00"
+        procedure:
+          type: string
+          description: Procedure short name (Nexumed will normalize)
+          example: "ECG"
+        patient:
+          $ref: "#/components/schemas/HealthOneWorkOrderPatient"
+        doctor:
+          $ref: "#/components/schemas/HealthOneWorkOrderDoctor"
+
+    HealthOneWorkOrderResponse:
+      type: object
+      required: [message, drsId, emr, procedure, format]
+      properties:
+        message:
+          type: string
+          example: "HealthOne work order received"
+        reqId:
+          type: string
+          example: "1739435212345-acde12"
+        drsId:
+          type: string
+          example: "114623234"
+        emr:
+          type: string
+          example: "HealthOne"
+        procedure:
+          type: string
+          example: "ECG"
+        format:
+          type: string
+          example: "HealthOneJSON"
+        device:
+          nullable: true
+          type: object
+          additionalProperties: true
+        forwardedTo:
+          nullable: true
+          type: string
+          example: "MESI_CLOUD_TASK_API"
+        mesiTaskId:
+          nullable: true
+          type: string
+          example: "a1b2c3d4"
+        mesiIntegrationId:
+          nullable: true
+          type: string
+          example: "integration-xyz"
+        converted:
+          nullable: true
+          description: Present when conversion/queue was performed; otherwise null
+          type: object
+          additionalProperties: true
+
 paths:
   /api/healthone/new-account:
     post:
+      tags: [HealthOne]
       summary: HealthOne — Provision a new clinic (admin + users)
       description: |
         Creates a new Nexumed clinic context for HealthOne, including:
@@ -257,8 +376,66 @@ paths:
               example:
                 message: "Failed to provision HealthOne clinic."
 
+  /api/healthone/workorders:
+    post:
+      tags: [HealthOne]
+      summary: HealthOne — Submit a work order (patient + procedure)
+      description: |
+        Submits a work order in JSON format from HealthOne to Nexumed.
+
+        **Authentication**:
+        - HTTP header: `x-api-key: YOUR_API_KEY`
+
+        Nexumed will:
+        - Validate the API key and active subscription.
+        - Normalize procedure name and key patient fields.
+        - Route the work order to the configured device workflow.
+        - If the configured device is MESI, Nexumed may forward the order to the MESI Cloud Task API.
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HealthOneWorkOrderPayload"
+            example:
+              schemaVersion: "1.0"
+              visitNumber: "1234"
+              activityId: "12345"
+              scheduledDateTime: "2026-02-04T15:30:00+01:00"
+              procedure: "ECG"
+              patient:
+                id: "8234576"
+                firstName: "John"
+                lastName: "Doe"
+                birthDate: "2000-10-01"
+                gender: 1
+              doctor:
+                drsId: "12345678901"
+                firstName: "Andre"
+                lastName: "Van Gastel"
+      responses:
+        "200":
+          description: Work order accepted and processed (may be forwarded/converted internally)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthOneWorkOrderResponse"
+        "400":
+          description: Bad request (missing API key)
+        "401":
+          description: Unauthorized (invalid API key)
+        "403":
+          description: Subscription inactive or not allowed
+        "422":
+          description: Invalid payload (missing required fields)
+        "500":
+          description: Internal server error
+
   /api/receive-file-key:
     post:
+      tags: [EMR]
       summary: Upload work order file (via API key)
       description: |
         Upload a patient work order file.
@@ -364,6 +541,7 @@ paths:
 
   /api/emr/procedures:
     get:
+      tags: [EMR]
       summary: Get procedures configured for a clinic (via API key)
       description: |
         Returns the list of unique procedures (e.g. ECG, BP, Spiro, TEMP)
@@ -407,6 +585,7 @@ paths:
 
   /emr/eid/{drsId}/patient-data-out:
     get:
+      tags: [eID]
       summary: eID reader — GET patient data XML
       description: |
         Returns the most recently staged eID patient XML for the given **drsId**.
@@ -489,6 +668,7 @@ paths:
 
   /api/emr/results:
     get:
+      tags: [EMR]
       summary: Fetch queued EMR results (via API key).
       description: |
         Returns **all queued results** currently staged for the clinic’s configured EMR provider.
