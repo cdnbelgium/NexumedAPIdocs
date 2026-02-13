@@ -301,8 +301,8 @@ paths:
                 phone: "+32479172881"
               admin:
                 email: "admin@nexumed.be"
-                role: "Admin"
-                drsId: "HO-ADMIN-0001"
+                role: "Can be anyone of: Doctor, Nurse, Office Manager, Admin, IT"
+                drsId: "97463524132"
                 firstName: "Joel"
                 lastName: "Scharlach"
               users:
