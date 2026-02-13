@@ -277,7 +277,7 @@ paths:
 
         **Important notes**
         - The API key is **not** returned in the API response; it is sent to the admin via email.
-        - Creation of "Admin" will just become a user.  We need to allocate the admin role to one user.
+        - Creation of "admin" in your JSON will just become a user.  We need to allocate the admin role to one user.
         - If a user already exists (email or drsId), they are skipped.
         - `practiceId` is resolved as:
           - If an existing user already has the same practice name + practiceId, that practiceId is reused.
