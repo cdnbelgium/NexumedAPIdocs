@@ -9,24 +9,16 @@ info:
 
     ---
     **Endpoints Overview**:
-    - `POST /api/healthone/new-account`: HealthOne provisioning endpoint (OAuth-protected) to create a clinic + admin + users.
+    - `POST /api/healthone/new-account`: HealthOne provisioning endpoint (OAuth-protected) to create a practice + admin + users.
     - `POST /api/healthone/workorders`: HealthOne work order endpoint (API key) to submit patient + procedure work orders in JSON.
-    - `POST /api/receive-file-key`: Advanced file upload where the clinic **API key** is provided via HTTP header (`x-api-key`). Nexumed automatically determines the procedure type from the uploaded file.
-    - `GET /api/emr/procedures`: Returns the list of configured procedures (ECG, BP, Spiro, etc.) for the **clinic** associated with the provided API key.
+    - `POST /api/receive-file-key`: Advanced file upload where the practice **API key** is provided via HTTP header (`x-api-key`). Nexumed automatically determines the procedure type from the uploaded file.
+    - `GET /api/emr/procedures`: Returns the list of configured procedures (ECG, BP, Spiro, etc.) for the **practice** associated with the provided API key.
     - `GET /emr/eid/{drsId}/patient-data-out`: Get the most recently staged eID patient XML for a doctor.
-    - `GET /api/emr/results`: Returns all queued result files (e.g. required file formats, PDFs) for the clinic’s configured EMR provider.
+    - `GET /api/emr/results`: Returns all queued result files (e.g. required file formats, PDFs) for the practice’s configured EMR provider.
 
 servers:
   - url: https://api.nexumed.eu
     description: Production server
-
-tags:
-  - name: HealthOne
-    description: HealthOne integration endpoints (provisioning + work orders)
-  - name: EMR 
-    description: Generic EMR endpoints (procedures, results, uploads)
-  - name: eID
-    description: eID reader endpoints
 
 components:
   securitySchemes:
@@ -67,7 +59,7 @@ components:
           type: string
           example: "Van Gastel"
 
-    HealthOneClinic:
+    HealthOnePractice:
       type: object
       required: [name]
       properties:
@@ -95,13 +87,13 @@ components:
 
     HealthOneProvisioningPayload:
       type: object
-      required: [schemaVersion, clinic, admin, users]
+      required: [schemaVersion, practice, admin, users]
       properties:
         schemaVersion:
           type: string
           example: "1.0"
-        clinic:
-          $ref: "#/components/schemas/HealthOneClinic"
+        practice:
+          $ref: "#/components/schemas/HealthOnePractice"
         admin:
           $ref: "#/components/schemas/HealthOneIncomingUser"
         users:
@@ -135,12 +127,12 @@ components:
 
     HealthOneProvisioningResponse:
       type: object
-      required: [ok, clinic, createdCount, skippedCount, created, skipped]
+      required: [ok, practice, createdCount, skippedCount, created, skipped]
       properties:
         ok:
           type: boolean
           example: true
-        clinic:
+        practice:
           type: object
           required: [name, practiceId]
           properties:
@@ -273,21 +265,19 @@ components:
 paths:
   /api/healthone/new-account:
     post:
-      tags: [HealthOne]
-      summary: HealthOne — Provision a new clinic (admin + users)
+      summary: HealthOne — Provision a new practice (admin + users)
       description: |
-        Creates a new Nexumed clinic context for HealthOne, including:
-        - 1 admin user (source of truth for clinic configuration)
+        Creates a new Nexumed practice context for HealthOne, including:
+        - 1 admin user (source of truth for practice configuration)
         - 0..N additional users
-        - A clinic API key (generated once and sent **only to the admin** via email)
+        - A practice API key (generated once and sent **only to the admin** via email)
         - Email provisioning (verification + temporary password) for all created users
 
         **Important notes**
         - The API key is **not** returned in the API response; it is sent to the admin via email.
-        - The Admin can be any member of staff (doctor, nurse, office manager, etc.) designated to fill the role.
         - If a user already exists (email or drsId), they are skipped.
         - `practiceId` is resolved as:
-          - If an existing user already has the same clinic name + practiceId, that practiceId is reused.
+          - If an existing user already has the same practice name + practiceId, that practiceId is reused.
           - Otherwise a new unique practiceId is generated.
       security:
         - HealthOneOAuth: []
@@ -299,7 +289,7 @@ paths:
               $ref: "#/components/schemas/HealthOneProvisioningPayload"
             example:
               schemaVersion: "1.0"
-              clinic:
+              practice:
                 name: "Huisartsenpraktijk Scharlach"
                 vat: "BE0123456789"
                 addressLine1: "Kerkstraat 10"
@@ -310,7 +300,7 @@ paths:
               admin:
                 email: "admin@nexumed.be"
                 role: "Admin"
-                drsId: "12345678965"
+                drsId: "HO-ADMIN-0001"
                 firstName: "Joel"
                 lastName: "Scharlach"
               users:
@@ -322,8 +312,23 @@ paths:
                 - email: "dr.schoofs@nexumed.be"
                   role: "Doctor"
                   drsId: "10987654321"
-                  firstName: "Lies"
+                  firstName: "Katrijn"
                   lastName: "Schoofs"
+                - email: "nurse.peeters@nexumed.be"
+                  role: "Nurse"
+                  drsId: "998877"
+                  firstName: "Jente"
+                  lastName: "Peeters"
+                - email: "office@nexumed.be"
+                  role: "Office Manager"
+                  drsId: "0003"
+                  firstName: "Sofie"
+                  lastName: "Janssens"
+                - email: "it@nexumed.be"
+                  role: "IT"
+                  drsId: "0009"
+                  firstName: "Jelle"
+                  lastName: "Jans"
       responses:
         "201":
           description: Provisioning completed (some users may be skipped)
@@ -331,26 +336,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthOneProvisioningResponse"
-              example:
-                ok: true
-                clinic:
-                  name: "Huisartsenpraktijk Scharlach"
-                  practiceId: "1234567080226"
-                createdCount: 2
-                skippedCount: 1
-                created:
-                  - email: "admin@nexumed.be"
-                    drsId: "HO-ADMIN-0001"
-                    userId: "65f0c2a3d9b1c3a2d1e4f123"
-                    isAdmin: true
-                  - email: "dr.vangastel@nexumed.be"
-                    drsId: "12345678901"
-                    userId: "65f0c2a3d9b1c3a2d1e4f456"
-                    isAdmin: false
-                skipped:
-                  - email: "dr.schoofs@nexumed.be"
-                    drsId: "10987654321"
-                    reason: "user already exists (email or drsId)"
         "400":
           description: Invalid request (missing required fields)
           content:
@@ -374,11 +359,10 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
               example:
-                message: "Failed to provision HealthOne clinic."
+                message: "Failed to provision HealthOne practice."
 
   /api/healthone/workorders:
     post:
-      tags: [HealthOne]
       summary: HealthOne — Submit a work order (patient + procedure)
       description: |
         Submits a work order in JSON format from HealthOne to Nexumed.
@@ -435,7 +419,6 @@ paths:
 
   /api/receive-file-key:
     post:
-      tags: [EMR]
       summary: Upload work order file (via API key)
       description: |
         Upload a patient work order file.
@@ -447,12 +430,11 @@ paths:
         - Validate the API key and subscription.
         - Detect file format (GDT / XML / HL7 / Unknown).
         - Detect procedure from file content.
-        - Attempt to route and convert the work order internally based on the clinic configuration.
+        - Attempt to route and convert the work order internally based on the practice configuration.
 
         This endpoint is intended as a fire-and-forget upload endpoint.
       security:
         - ApiKeyAuth: []
-
       requestBody:
         required: true
         content:
@@ -465,7 +447,6 @@ paths:
                   type: string
                   format: binary
                   description: The medical work order file (GDT, XML, HL7).
-
       responses:
         "200":
           description: File received and processed
@@ -527,7 +508,6 @@ paths:
                           orderId:
                             type: string
                             example: "c1f8a7b8-5c29-4dd3-b8c0-7f5f4c2a21cd"
-
         "400":
           description: Bad request (missing file)
         "401":
@@ -541,22 +521,21 @@ paths:
 
   /api/emr/procedures:
     get:
-      tags: [EMR]
-      summary: Get procedures configured for a clinic (via API key)
+      summary: Get procedures configured for a practice (via API key)
       description: |
         Returns the list of unique procedures (e.g. ECG, BP, Spiro, TEMP)
-        configured for the clinic associated with the provided API key.
+        configured for the practice associated with the provided API key.
 
         **Authentication**:
         - HTTP header: `x-api-key: YOUR_API_KEY`
 
-        The API key is used to look up the clinic owner (admin = true) inside Nexumed;
-        procedure names are returned from the clinic’s shared device configuration.
+        The API key is used to look up the practice owner (admin = true) inside Nexumed;
+        procedure names are returned from the practice’s shared device configuration.
       security:
         - ApiKeyAuth: []
       responses:
         "200":
-          description: Successfully resolved procedures for this clinic
+          description: Successfully resolved procedures for this practice
           content:
             application/json:
               schema:
@@ -585,7 +564,6 @@ paths:
 
   /emr/eid/{drsId}/patient-data-out:
     get:
-      tags: [eID]
       summary: eID reader — GET patient data XML
       description: |
         Returns the most recently staged eID patient XML for the given **drsId**.
@@ -668,10 +646,9 @@ paths:
 
   /api/emr/results:
     get:
-      tags: [EMR]
       summary: Fetch queued EMR results (via API key).
       description: |
-        Returns **all queued results** currently staged for the clinic’s configured EMR provider.
+        Returns **all queued results** currently staged for the practice’s configured EMR provider.
 
         **Authentication**:
         - HTTP header: `x-api-key: YOUR_API_KEY`
@@ -705,45 +682,6 @@ paths:
                     items:
                       type: object
                       additionalProperties: true
-              example:
-                ok: true
-                provider: "EMR name"
-                count: 2
-                results:
-                  - resultId: "43feba5-6c91-436a-9e9e-2771ecc2ebfd"
-                    provider: "EMR name"
-                    procedure: "ECG"
-                    device: "SCHILLER"
-                    model: "CARDIOVIT-AT-102-G2"
-                    createdAt: "2025-12-24T10:56:11.982Z"
-                    files:
-                      - type: "KMEHR_XML"
-                        fileName: "SMITH_kmehr_1766573771982.xml"
-                        mimeType: "application/xml"
-                        encoding: "utf8"
-                        content: "<kmehrmessage xmlns=\"http://www.ehealth.fgov.be/standards/kmehr/schema/v1\">...</kmehrmessage>"
-                      - type: "PDF"
-                        fileName: "SMITH_ECG_1766573771960.pdf"
-                        mimeType: "application/pdf"
-                        encoding: "base64"
-                        content: "JVBERi0xLjQKJ..."
-                  - resultId: "3707f1ca-11da-4fe4-8756-d557d42405c2"
-                    provider: "EMR name"
-                    procedure: "ECG"
-                    device: "SCHILLER"
-                    model: "CARDIOVIT-AT-102-G2"
-                    createdAt: "2025-12-24T10:56:36.299Z"
-                    files:
-                      - type: "KMEHR_XML"
-                        fileName: "ANDERSON_kmehr_1766573796299.xml"
-                        mimeType: "application/xml"
-                        encoding: "utf8"
-                        content: "<kmehrmessage ...>...</kmehrmessage>"
-                      - type: "PDF"
-                        fileName: "ANDERSON_ECG_1766573771960.pdf"
-                        mimeType: "application/pdf"
-                        encoding: "base64"
-                        content: "JVBERi0xLjQKJ..."
         "204":
           description: No queued results available (empty queue)
         "400":
