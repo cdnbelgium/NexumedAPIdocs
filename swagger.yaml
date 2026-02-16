@@ -9,8 +9,6 @@ info:
 
     ---
     **Endpoints Overview**:
-    # - `POST /api/healthone/new-account`: HealthOne provisioning endpoint (OAuth-protected) to create a practice + admin + users.
-    # - `POST /api/healthone/workorders`: HealthOne work order endpoint (API key) to submit patient + procedure work orders in JSON.
     - `POST /api/receive-file-key`: Advanced file upload where the practice **API key** is provided via HTTP header (`x-api-key`). Nexumed automatically determines the procedure type from the uploaded file.
     - `GET /api/emr/procedures`: Returns the list of configured procedures (ECG, BP, Spiro, etc.) for the **practice** associated with the provided API key.
     - `GET /emr/eid/{drsId}/patient-data-out`: Get the most recently staged eID patient XML for a doctor.
