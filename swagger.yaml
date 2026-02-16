@@ -9,8 +9,8 @@ info:
 
     ---
     **Endpoints Overview**:
-    - `POST /api/healthone/new-account`: HealthOne provisioning endpoint (OAuth-protected) to create a practice + admin + users.
-    - `POST /api/healthone/workorders`: HealthOne work order endpoint (API key) to submit patient + procedure work orders in JSON.
+    # - `POST /api/healthone/new-account`: HealthOne provisioning endpoint (OAuth-protected) to create a practice + admin + users.
+    # - `POST /api/healthone/workorders`: HealthOne work order endpoint (API key) to submit patient + procedure work orders in JSON.
     - `POST /api/receive-file-key`: Advanced file upload where the practice **API key** is provided via HTTP header (`x-api-key`). Nexumed automatically determines the procedure type from the uploaded file.
     - `GET /api/emr/procedures`: Returns the list of configured procedures (ECG, BP, Spiro, etc.) for the **practice** associated with the provided API key.
     - `GET /emr/eid/{drsId}/patient-data-out`: Get the most recently staged eID patient XML for a doctor.
@@ -265,160 +265,160 @@ components:
           additionalProperties: true
 
 paths:
-  /api/healthone/new-account:
-    post:
-      summary: HealthOne — Provision a new practice (admin + users)
-      description: |
-        Creates a new Nexumed practice context for HealthOne, including:
-        - 1 admin user (source of truth for practice configuration)
-        - 0..N additional users
-        - A practice API key (generated once and sent **only to the admin** via email)
-        - Email provisioning (verification + temporary password) for all created users
+  # /api/healthone/new-account:
+  #   post:
+  #     summary: HealthOne — Provision a new practice (admin + users)
+  #     description: |
+  #       Creates a new Nexumed practice context for HealthOne, including:
+  #       - 1 admin user (source of truth for practice configuration)
+  #       - 0..N additional users
+  #       - A practice API key (generated once and sent **only to the admin** via email)
+  #       - Email provisioning (verification + temporary password) for all created users
 
-        **Important notes**
-        - The API key is **not** returned in the API response; it is sent to the admin via email.
-        - Creation of "admin" in your JSON will just become a user.  We need to allocate the admin role to one user.
-        - If a user already exists (email or drsId), they are skipped.
-        - `practiceId` is resolved as:
-          - If an existing user already has the same practice name + practiceId, that practiceId is reused.
-          - Otherwise a new unique practiceId is generated.
-      security:
-        - HealthOneOAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/HealthOneProvisioningPayload"
-            example:
-              schemaVersion: "1.0"
-              practice:
-                name: "Huisartsenpraktijk Scharlach"
-                vat: "BE0123456789"
-                addressLine1: "Kerkstraat 10"
-                postalCode: "2000"
-                town: "Antwerpen"
-                countryCode: "BE"
-                phone: "+32479172881"
-              admin:
-                email: "admin@nexumed.be"
-                role: "Can be anyone of: Doctor, Nurse, Office Manager, Admin, IT"
-                drsId: "97463524132"
-                firstName: "Joel"
-                lastName: "Scharlach"
-              users:
-                - email: "dr.vangastel@nexumed.be"
-                  role: "Doctor"
-                  drsId: "12345678901"
-                  firstName: "Andre"
-                  lastName: "Van Gastel"
-                - email: "dr.schoofs@nexumed.be"
-                  role: "Doctor"
-                  drsId: "10987654321"
-                  firstName: "Katrijn"
-                  lastName: "Schoofs"
-                - email: "nurse.peeters@nexumed.be"
-                  role: "Nurse"
-                  drsId: "998877"
-                  firstName: "Jente"
-                  lastName: "Peeters"
-                - email: "office@nexumed.be"
-                  role: "Office Manager"
-                  drsId: "0003"
-                  firstName: "Sofie"
-                  lastName: "Janssens"
-                - email: "it@nexumed.be"
-                  role: "IT"
-                  drsId: "0009"
-                  firstName: "Jelle"
-                  lastName: "Jans"
-      responses:
-        "201":
-          description: Provisioning completed (some users may be skipped)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HealthOneProvisioningResponse"
-        "400":
-          description: Invalid request (missing required fields)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-              example:
-                message: "admin.email and admin.drsId are required"
-        "401":
-          description: Unauthorized (missing/invalid OAuth token)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-              example:
-                message: "Unauthorized"
-        "500":
-          description: Internal server error (provisioning failed)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-              example:
-                message: "Failed to provision HealthOne practice."
+  #       **Important notes**
+  #       - The API key is **not** returned in the API response; it is sent to the admin via email.
+  #       - Creation of "admin" in your JSON will just become a user.  We need to allocate the admin role to one user.
+  #       - If a user already exists (email or drsId), they are skipped.
+  #       - `practiceId` is resolved as:
+  #         - If an existing user already has the same practice name + practiceId, that practiceId is reused.
+  #         - Otherwise a new unique practiceId is generated.
+  #     security:
+  #       - HealthOneOAuth: []
+  #     requestBody:
+  #       required: true
+  #       content:
+  #         application/json:
+  #           schema:
+  #             $ref: "#/components/schemas/HealthOneProvisioningPayload"
+  #           example:
+  #             schemaVersion: "1.0"
+  #             practice:
+  #               name: "Huisartsenpraktijk Scharlach"
+  #               vat: "BE0123456789"
+  #               addressLine1: "Kerkstraat 10"
+  #               postalCode: "2000"
+  #               town: "Antwerpen"
+  #               countryCode: "BE"
+  #               phone: "+32479172881"
+  #             admin:
+  #               email: "admin@nexumed.be"
+  #               role: "Can be anyone of: Doctor, Nurse, Office Manager, Admin, IT"
+  #               drsId: "97463524132"
+  #               firstName: "Joel"
+  #               lastName: "Scharlach"
+  #             users:
+  #               - email: "dr.vangastel@nexumed.be"
+  #                 role: "Doctor"
+  #                 drsId: "12345678901"
+  #                 firstName: "Andre"
+  #                 lastName: "Van Gastel"
+  #               - email: "dr.schoofs@nexumed.be"
+  #                 role: "Doctor"
+  #                 drsId: "10987654321"
+  #                 firstName: "Katrijn"
+  #                 lastName: "Schoofs"
+  #               - email: "nurse.peeters@nexumed.be"
+  #                 role: "Nurse"
+  #                 drsId: "998877"
+  #                 firstName: "Jente"
+  #                 lastName: "Peeters"
+  #               - email: "office@nexumed.be"
+  #                 role: "Office Manager"
+  #                 drsId: "0003"
+  #                 firstName: "Sofie"
+  #                 lastName: "Janssens"
+  #               - email: "it@nexumed.be"
+  #                 role: "IT"
+  #                 drsId: "0009"
+  #                 firstName: "Jelle"
+  #                 lastName: "Jans"
+  #     responses:
+  #       "201":
+  #         description: Provisioning completed (some users may be skipped)
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/HealthOneProvisioningResponse"
+  #       "400":
+  #         description: Invalid request (missing required fields)
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/ErrorResponse"
+  #             example:
+  #               message: "admin.email and admin.drsId are required"
+  #       "401":
+  #         description: Unauthorized (missing/invalid OAuth token)
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/ErrorResponse"
+  #             example:
+  #               message: "Unauthorized"
+  #       "500":
+  #         description: Internal server error (provisioning failed)
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/ErrorResponse"
+  #             example:
+  #               message: "Failed to provision HealthOne practice."
 
-  /api/healthone/workorders:
-    post:
-      summary: HealthOne — Submit a work order (patient + procedure)
-      description: |
-        Submits a work order in JSON format from HealthOne to Nexumed.
+  # /api/healthone/workorders:
+  #   post:
+  #     summary: HealthOne — Submit a work order (patient + procedure)
+  #     description: |
+  #       Submits a work order in JSON format from HealthOne to Nexumed.
 
-        **Authentication**:
-        - HTTP header: `x-api-key: YOUR_API_KEY`
+  #       **Authentication**:
+  #       - HTTP header: `x-api-key: YOUR_API_KEY`
 
-        Nexumed will:
-        - Validate the API key and active subscription.
-        - Normalize procedure name and key patient fields.
-        - Route the work order to the configured device workflow.
-        - If the configured device is MESI, Nexumed may forward the order to the MESI Cloud Task API.
-      security:
-        - ApiKeyAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/HealthOneWorkOrderPayload"
-            example:
-              schemaVersion: "1.0"
-              visitNumber: "1234"
-              activityId: "12345"
-              scheduledDateTime: "2026-02-04T15:30:00+01:00"
-              procedure: "ECG"
-              patient:
-                id: "8234576"
-                firstName: "John"
-                lastName: "Doe"
-                birthDate: "2000-10-01"
-                gender: 1
-              doctor:
-                drsId: "12345678901"
-                firstName: "Andre"
-                lastName: "Van Gastel"
-      responses:
-        "200":
-          description: Work order accepted and processed (may be forwarded/converted internally)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HealthOneWorkOrderResponse"
-        "400":
-          description: Bad request (missing API key)
-        "401":
-          description: Unauthorized (invalid API key)
-        "403":
-          description: Subscription inactive or not allowed
-        "422":
-          description: Invalid payload (missing required fields)
-        "500":
-          description: Internal server error
+  #       Nexumed will:
+  #       - Validate the API key and active subscription.
+  #       - Normalize procedure name and key patient fields.
+  #       - Route the work order to the configured device workflow.
+  #       - If the configured device is MESI, Nexumed may forward the order to the MESI Cloud Task API.
+  #     security:
+  #       - ApiKeyAuth: []
+  #     requestBody:
+  #       required: true
+  #       content:
+  #         application/json:
+  #           schema:
+  #             $ref: "#/components/schemas/HealthOneWorkOrderPayload"
+  #           example:
+  #             schemaVersion: "1.0"
+  #             visitNumber: "1234"
+  #             activityId: "12345"
+  #             scheduledDateTime: "2026-02-04T15:30:00+01:00"
+  #             procedure: "ECG"
+  #             patient:
+  #               id: "8234576"
+  #               firstName: "John"
+  #               lastName: "Doe"
+  #               birthDate: "2000-10-01"
+  #               gender: 1
+  #             doctor:
+  #               drsId: "12345678901"
+  #               firstName: "Andre"
+  #               lastName: "Van Gastel"
+  #     responses:
+  #       "200":
+  #         description: Work order accepted and processed (may be forwarded/converted internally)
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/HealthOneWorkOrderResponse"
+  #       "400":
+  #         description: Bad request (missing API key)
+  #       "401":
+  #         description: Unauthorized (invalid API key)
+  #       "403":
+  #         description: Subscription inactive or not allowed
+  #       "422":
+  #         description: Invalid payload (missing required fields)
+  #       "500":
+  #         description: Internal server error
 
   /api/receive-file-key:
     post:
