@@ -262,6 +262,30 @@ components:
           type: object
           additionalProperties: true
 
+    ProcedureOption:
+      type: object
+      required: [procedure, procedureCode]
+      properties:
+        procedure:
+          type: string
+          example: "ECG"
+        procedureCode:
+          type: string
+          example: "EKG01"
+        manufacturer:
+          type: string
+          nullable: true
+          example: "SCHILLER"
+        device:
+          type: string
+          nullable: true
+          example: "CARDIOVIT AT-102"
+        deviceId:
+          type: string
+          nullable: true
+          example: "DEV-123"
+
+
 paths:
   # /api/healthone/new-account:
   #   post:
@@ -527,11 +551,8 @@ paths:
         Returns the list of unique procedures (e.g. ECG, BP, Spiro, TEMP)
         configured for the practice associated with the provided API key.
 
-        **Authentication**:
-        - HTTP header: `x-api-key: YOUR_API_KEY`
-
-        The API key is used to look up the practice owner (admin = true) inside Nexumed;
-        procedure names are returned from the practice’s shared device configuration.
+        Also returns `procedureOptions` which represent selectable choices
+        (procedure + procedureCode + device metadata) for doctor-facing UI.
       security:
         - ApiKeyAuth: []
       responses:
@@ -541,6 +562,7 @@ paths:
             application/json:
               schema:
                 type: object
+                required: [ok, procedures, procedureOptions]
                 properties:
                   ok:
                     type: boolean
@@ -549,6 +571,11 @@ paths:
                     type: array
                     items:
                       type: string
+                    example: ["TEMP", "Spiro", "SPO2", "ECG"]
+                  procedureOptions:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ProcedureOption"
               example:
                 ok: true
                 procedures:
@@ -556,12 +583,24 @@ paths:
                   - Spiro
                   - SPO2
                   - ECG
+                procedureOptions:
+                  - procedure: "ECG"
+                    procedureCode: "EKG01"
+                    manufacturer: "SCHILLER"
+                    device: "CARDIOVIT AT-102"
+                    deviceId: "SCH-AT102-001"
+                  - procedure: "SPIRO"
+                    procedureCode: "LUFU00"
+                    manufacturer: "MIR"
+                    device: "Spirobank"
+                    deviceId: "MIR-SB-014"
         "400":
           description: Missing API key
         "401":
           description: Unauthorized (invalid or unknown API key)
         "500":
           description: Internal server error
+
 
   /emr/eid/{drsId}/patient-data-out:
     get:
