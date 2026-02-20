@@ -552,7 +552,7 @@ paths:
         configured for the practice associated with the provided API key.
 
         Also returns `procedureOptions` which represent selectable choices
-        (procedure + procedureCode + device metadata) for doctor-facing UI.
+        (procedure + procedureType + UI label) for doctor-facing UI.
       security:
         - ApiKeyAuth: []
       responses:
@@ -585,15 +585,11 @@ paths:
                   - ECG
                 procedureOptions:
                   - procedure: "ECG"
-                    procedureCode: "EKG01"
-                    manufacturer: "SCHILLER"
-                    device: "CARDIOVIT AT-102"
-                    deviceId: "SCH-AT102-001"
+                    procedureType: "EKG01"
+                    label: "Resting ECG"
                   - procedure: "SPIRO"
-                    procedureCode: "LUFU00"
-                    manufacturer: "MIR"
-                    device: "Spirobank"
-                    deviceId: "MIR-SB-014"
+                    procedureType: "LUFU00"
+                    label: "Spirometry"
         "400":
           description: Missing API key
         "401":
